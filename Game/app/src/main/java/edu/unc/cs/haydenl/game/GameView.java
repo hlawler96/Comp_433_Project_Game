@@ -71,6 +71,7 @@ public class GameView extends View {
         drawTiles(c,p);
         drawSettlements(c,p);
         drawPlayerBoxes(c,p);
+        drawPorts(c,p);
     }
 
     public void onTouch(float x, float y){
@@ -126,6 +127,17 @@ public class GameView extends View {
             p.setStyle(Paint.Style.STROKE);
             p.setStrokeWidth(1);
             c.drawPath(path,p);
+
+            int centerX = t.spots[0].x;
+            int centerY = t.spots[1].y + 3*(t.spots[2].y -t.spots[1].y)/4;
+            p.setColor(Color.WHITE);
+            p.setStyle(Paint.Style.FILL_AND_STROKE);
+            c.drawCircle(centerX, centerY - 20, 60, p);
+            p.setColor(Color.BLACK);
+            if(t.number == 6 || t.number == 8) p.setColor(Color.RED);
+            p.setTextAlign(Paint.Align.CENTER);
+            p.setTextSize(64);
+            if(t.number != 0)c.drawText("" + t.number, centerX, centerY, p);
         }
         //second row
         for(int i =0; i < 8; i+=2){
@@ -156,6 +168,18 @@ public class GameView extends View {
             p.setStyle(Paint.Style.STROKE);
             p.setStrokeWidth(1);
             c.drawPath(path,p);
+
+            int centerX = t.spots[0].x;
+            int centerY = t.spots[1].y + 3*(t.spots[2].y -t.spots[1].y)/4;
+            p.setColor(Color.WHITE);
+            p.setStyle(Paint.Style.FILL_AND_STROKE);
+            c.drawCircle(centerX, centerY-20, 60, p);
+            p.setColor(Color.BLACK);
+            if(t.number == 6 || t.number == 8) p.setColor(Color.RED);
+            p.setStyle(Paint.Style.FILL_AND_STROKE);
+            p.setTextAlign(Paint.Align.CENTER);
+            p.setTextSize(64);
+            if(t.number != 0)c.drawText("" + t.number, centerX, centerY, p);
         }
 
         //third row
@@ -186,6 +210,18 @@ public class GameView extends View {
             p.setStyle(Paint.Style.STROKE);
             p.setStrokeWidth(1);
             c.drawPath(path,p);
+
+            int centerX = t.spots[0].x;
+            int centerY = t.spots[1].y + 3*(t.spots[2].y -t.spots[1].y)/4;
+            p.setColor(Color.WHITE);
+            p.setStyle(Paint.Style.FILL_AND_STROKE);
+            c.drawCircle(centerX, centerY-20, 60, p);
+            p.setColor(Color.BLACK);
+            if(t.number == 6 || t.number == 8) p.setColor(Color.RED);
+            p.setStyle(Paint.Style.FILL_AND_STROKE);
+            p.setTextAlign(Paint.Align.CENTER);
+            p.setTextSize(64);
+            if(t.number != 0)c.drawText("" + t.number, centerX, centerY, p);
         }
 
         //fourth row
@@ -216,6 +252,18 @@ public class GameView extends View {
             p.setStyle(Paint.Style.STROKE);
             p.setStrokeWidth(1);
             c.drawPath(path,p);
+
+            int centerX = t.spots[0].x;
+            int centerY = t.spots[1].y + 3*(t.spots[2].y -t.spots[1].y)/4;
+            p.setColor(Color.WHITE);
+            p.setStyle(Paint.Style.FILL_AND_STROKE);
+            c.drawCircle(centerX, centerY-20, 60, p);
+            p.setColor(Color.BLACK);
+            if(t.number == 6 || t.number == 8) p.setColor(Color.RED);
+            p.setStyle(Paint.Style.FILL_AND_STROKE);
+            p.setTextAlign(Paint.Align.CENTER);
+            p.setTextSize(64);
+            if(t.number != 0)c.drawText("" + t.number, centerX, centerY, p);
         }
 
         //fifth row
@@ -248,6 +296,18 @@ public class GameView extends View {
             p.setStyle(Paint.Style.STROKE);
             p.setStrokeWidth(1);
             c.drawPath(path,p);
+
+            int centerX = t.spots[0].x;
+            int centerY = t.spots[1].y + 3*(t.spots[2].y -t.spots[1].y)/4;
+            p.setColor(Color.WHITE);
+            p.setStyle(Paint.Style.FILL_AND_STROKE);
+            c.drawCircle(centerX, centerY-20, 60, p);
+            p.setColor(Color.BLACK);
+            if(t.number == 6 || t.number == 8) p.setColor(Color.RED);
+            p.setStyle(Paint.Style.FILL_AND_STROKE);
+            p.setTextAlign(Paint.Align.CENTER);
+            p.setTextSize(64);
+            if(t.number != 0) c.drawText("" + t.number, centerX, centerY, p);
         }
 
     }
@@ -332,6 +392,16 @@ public class GameView extends View {
         c.drawText("Largest Army: " + game.players[3].largestArmy,10,5*height/6 +165,p);
 
 
+    }
+
+    private void drawPorts(Canvas c, Paint p){
+        Port[] ports = game.ports;
+        p.setColor(Color.CYAN);
+        p.setStyle(Paint.Style.FILL_AND_STROKE);
+        for(Port prt: ports){
+            c.drawCircle(prt.left.x, prt.left.y, 10, p);
+            c.drawCircle(prt.right.x, prt.right.y, 10, p);
+        }
     }
 
 }

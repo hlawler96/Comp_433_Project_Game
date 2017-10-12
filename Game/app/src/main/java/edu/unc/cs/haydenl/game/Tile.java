@@ -11,7 +11,8 @@ public class Tile {
     ;
     public Spot[] spots;
     public RESOURCE_TYPE type;
-    public int color, counter;
+    public int color, counter, number;
+
 
     public Tile(RESOURCE_TYPE t, int c) {
         spots = new Spot[6];
@@ -21,6 +22,7 @@ public class Tile {
         }
         color = c;
         counter = 0;
+        number = 0;
     }
 
 
@@ -91,5 +93,20 @@ class Spot {
     public String toString(){
         return "Spot at (" + x + "," + y + ") and is owned by player " + _player;
     }
+
+}
+
+class Port {
+
+    Spot left, right;
+    Tile.RESOURCE_TYPE type;
+
+    public Port(Spot l, Spot r, Tile.RESOURCE_TYPE t){
+        left = l;
+        right = r;
+        type = t;
+    }
+
+
 
 }
