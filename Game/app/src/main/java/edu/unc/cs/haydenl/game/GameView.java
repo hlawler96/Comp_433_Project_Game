@@ -9,10 +9,8 @@ import android.os.Build;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
-import android.widget.Button;
 
 import java.util.ArrayList;
 
@@ -47,12 +45,13 @@ public class GameView extends View {
         init(context);
     }
 
-    public void init(Context context){
+    public void init(Context context
+    ){
         game = new GameBoard();
         setup = false;
         settlements = new ArrayList<Spot>();
 
-        this.setOnTouchListener(new View.OnTouchListener(){
+        this.setOnTouchListener(new OnTouchListener(){
             @Override
             public boolean onTouch(View v, MotionEvent event){
                 ((GameView) v).onTouch(event.getX(), event.getY());
@@ -71,6 +70,7 @@ public class GameView extends View {
         drawOcean(c,p);
         drawTiles(c,p);
         drawSettlements(c,p);
+        drawPlayerBoxes(c,p);
     }
 
     public void onTouch(float x, float y){
@@ -102,12 +102,12 @@ public class GameView extends View {
         for(int i = 0; i < 6; i+= 2){
             Tile t = game.getTileForBoard();
             if(!setup) {
-                t.storeCoordinates(width / 4 + (i + 1) * (width / 12), height / 10);
-                t.storeCoordinates(width / 4 + (i + 2) * (width / 12), height / 6);
-                t.storeCoordinates(width / 4 + (i + 2) * (width / 12), 7 * height / 30);
-                t.storeCoordinates(width / 4 + (i + 1) * (width / 12), 3 * height / 10);
-                t.storeCoordinates(width / 4 + i * (width / 12), 7 * height / 30);
-                t.storeCoordinates(width / 4 + i * (width / 12), height / 6);
+                t.storeCoordinates(5* width / 16 + (i + 1) * (width / 16), height / 10 + height/15);
+                t.storeCoordinates(5* width / 16 + (i + 2) * (width / 16), height / 6 + height/15);
+                t.storeCoordinates(5* width / 16 + (i + 2) * (width / 16), 7 * height / 30 + height/15);
+                t.storeCoordinates(5* width / 16 + (i + 1) * (width / 16), 3 * height / 10 + height/15) ;
+                t.storeCoordinates(5* width / 16 + i * (width / 16), 7 * height / 30 + height/15) ;
+                t.storeCoordinates(5* width / 16 + i * (width / 16), height / 6 + height/15);
             }
             Path path = new Path();
             path.moveTo(t.spots[0].x,t.spots[0].y);
@@ -131,12 +131,12 @@ public class GameView extends View {
         for(int i =0; i < 8; i+=2){
             Tile t = game.getTileForBoard();
             if(!setup) {
-                t.storeCoordinates(width / 6 + (i + 1) * (width / 12), 7 * height / 30);
-                t.storeCoordinates(width / 6 + (i + 2) * (width / 12), 7 * height / 30 + height / 15);
-                t.storeCoordinates(width / 6 + (i + 2) * (width / 12), 7 * height / 30 + 2 * height / 15);
-                t.storeCoordinates(width / 6 + (i + 1) * (width / 12), 7 * height / 30 + 3 * height / 15);
-                t.storeCoordinates(width / 6 + i * (width / 12), 7 * height / 30 + 2 * height / 15);
-                t.storeCoordinates(width / 6 + i * (width / 12), 7 * height / 30 + height / 15);
+                t.storeCoordinates(width / 4 + (i + 1) * (width / 16), 7 * height / 30 + height/15);
+                t.storeCoordinates(width / 4 + (i + 2) * (width / 16), 7 * height / 30 + 2 * height / 15);
+                t.storeCoordinates(width / 4 + (i + 2) * (width / 16), 7 * height / 30 + 3 * height / 15);
+                t.storeCoordinates(width / 4 + (i + 1) * (width / 16), 7 * height / 30 + 4 * height / 15);
+                t.storeCoordinates(width / 4 + i * (width / 16), 7 * height / 30 + 3 * height / 15);
+                t.storeCoordinates(width / 4 + i * (width / 16), 7 * height / 30 + 2 * height / 15);
             }
 
             Path path  = new Path();
@@ -162,12 +162,12 @@ public class GameView extends View {
         for(int i =0; i < 10; i+=2){
             Tile t = game.getTileForBoard();
             if(!setup) {
-                t.storeCoordinates(width / 12 + (i + 1) * (width / 12), 7 * height / 30 + 2 * height / 15);
-                t.storeCoordinates(width / 12 + (i + 2) * (width / 12), 7 * height / 30 + 3 * height / 15);
-                t.storeCoordinates(width / 12 + (i + 2) * (width / 12), 7 * height / 30 + 4 * height / 15);
-                t.storeCoordinates(width / 12 + (i + 1) * (width / 12), 7 * height / 30 + 5 * height / 15);
-                t.storeCoordinates(width / 12 + i * (width / 12), 7 * height / 30 + 4 * height / 15);
-                t.storeCoordinates(width / 12 + i * (width / 12), 7 * height / 30 + 3 * height / 15);
+                t.storeCoordinates(3*width / 16 + (i + 1) * (width / 16), 7 * height / 30 + 3 * height / 15);
+                t.storeCoordinates(3*width / 16 + (i + 2) * (width / 16), 7 * height / 30 + 4 * height / 15);
+                t.storeCoordinates(3*width / 16 + (i + 2) * (width / 16), 7 * height / 30 + 5 * height / 15);
+                t.storeCoordinates(3*width / 16 + (i + 1) * (width / 16), 7 * height / 30 + 6 * height / 15);
+                t.storeCoordinates(3*width / 16 + i * (width / 16), 7 * height / 30 + 5 * height / 15);
+                t.storeCoordinates(3*width / 16 + i * (width / 16), 7 * height / 30 + 4 * height / 15);
             }
             Path path  = new Path();
             path.moveTo(t.spots[0].x,t.spots[0].y);
@@ -192,12 +192,12 @@ public class GameView extends View {
         for(int i =0; i < 8; i+=2){
             Tile t = game.getTileForBoard();
             if(!setup) {
-                t.storeCoordinates(width / 6 + (i + 1) * (width / 12), 7 * height / 30 + 4 * height / 15);
-                t.storeCoordinates(width / 6 + (i + 2) * (width / 12), 7 * height / 30 + 5 * height / 15);
-                t.storeCoordinates(width / 6 + (i + 2) * (width / 12), 7 * height / 30 + 6 * height / 15);
-                t.storeCoordinates(width / 6 + (i + 1) * (width / 12), 7 * height / 30 + 7 * height / 15);
-                t.storeCoordinates(width / 6 + i * (width / 12), 7 * height / 30 + 6 * height / 15);
-                t.storeCoordinates(width / 6 + i * (width / 12), 7 * height / 30 + 5 * height / 15);
+                t.storeCoordinates(width / 4 + (i + 1) * (width / 16), 7 * height / 30 + 5 * height / 15);
+                t.storeCoordinates(width / 4 + (i + 2) * (width / 16), 7 * height / 30 + 6 * height / 15);
+                t.storeCoordinates(width / 4 + (i + 2) * (width / 16), 7 * height / 30 + 7 * height / 15);
+                t.storeCoordinates(width / 4 + (i + 1) * (width / 16), 7 * height / 30 + 8 * height / 15);
+                t.storeCoordinates(width / 4 + i * (width / 16), 7 * height / 30 + 7 * height / 15);
+                t.storeCoordinates(width / 4 + i * (width / 16), 7 * height / 30 + 6 * height / 15);
             }
             Path path  = new Path();
             path.moveTo(t.spots[0].x,t.spots[0].y);
@@ -222,12 +222,12 @@ public class GameView extends View {
         for(int i =0; i < 6; i+=2){
             Tile t = game.getTileForBoard();
             if(!setup) {
-                t.storeCoordinates(width / 4 + (i + 1) * (width / 12), 7 * height / 30 + 6 * height / 15);
-                t.storeCoordinates(width / 4 + (i + 2) * (width / 12), 7 * height / 30 + 7 * height / 15);
-                t.storeCoordinates(width / 4 + (i + 2) * (width / 12), 7 * height / 30 + 8 * height / 15);
-                t.storeCoordinates(width / 4 + (i + 1) * (width / 12), 7 * height / 30 + 9 * height / 15);
-                t.storeCoordinates(width / 4 + i * (width / 12), 7 * height / 30 + 8 * height / 15);
-                t.storeCoordinates(width / 4 + i * (width / 12), 7 * height / 30 + 7 * height / 15);
+                t.storeCoordinates(5*width / 16 + (i + 1) * (width / 16), 7 * height / 30 + 7 * height / 15);
+                t.storeCoordinates(5*width / 16 + (i + 2) * (width / 16), 7 * height / 30 + 8 * height / 15);
+                t.storeCoordinates(5*width / 16 + (i + 2) * (width / 16), 7 * height / 30 + 9 * height / 15);
+                t.storeCoordinates(5*width / 16 + (i + 1) * (width / 16), 7 * height / 30 + 10 * height / 15);
+                t.storeCoordinates(5*width / 16 + i * (width / 16), 7 * height / 30 + 9 * height / 15);
+                t.storeCoordinates(5*width / 16 + i * (width / 16), 7 * height / 30 + 8 * height / 15);
                 if(i == 4)setup = true;
             }
 
@@ -265,7 +265,73 @@ public class GameView extends View {
         }
     }
 
+    private void drawPlayerBoxes(Canvas c, Paint p){
+
+        //Player 1
+        p.setColor(game.players[0].color);
+        c.drawRect(0,0, 5* width / 24, height / 6,p);
+
+        p.setColor(Color.BLACK);
+        p.setTextSize(24);
+        p.setTextAlign(Paint.Align.CENTER);
+        c.drawText("Player 1", 5*width/48 - 5, 30, p);
+        p.setTextAlign(Paint.Align.LEFT);
+        c.drawText("Resource Cards: " + game.players[0].numResourceCards, 10, 65,p);
+        c.drawText("Development Cards: " + game.players[0].developmentCards, 10, 90,p);
+        c.drawText("Points: " + game.players[0].points, 10, 115,p);
+        c.drawText("Longest Road: " + game.players[0].longestRoad, 10, 140,p);
+        c.drawText("Largest Army: " + game.players[0].largestArmy,10,165,p);
 
 
+
+        //Player 2
+        p.setColor(game.players[1].color);
+        c.drawRect(19*width/24,0, width , height / 6,p);
+
+        p.setColor(Color.BLACK);
+        p.setTextSize(24);
+        p.setTextAlign(Paint.Align.CENTER);
+        c.drawText("Player 2", 43*width/48-5 , 30, p);
+        p.setTextAlign(Paint.Align.LEFT);
+        c.drawText("Resource Cards: " + game.players[1].numResourceCards, 19*width/24 + 10, 65,p);
+        c.drawText("Development Cards: " + game.players[1].developmentCards, 19*width/24 + 10, 90,p);
+        c.drawText("Points: " + game.players[1].points, 19*width/24 + 10, 115,p);
+        c.drawText("Longest Road: " + game.players[1].longestRoad, 19*width/24 +10, 140,p);
+        c.drawText("Largest Army: " + game.players[1].largestArmy,19*width/24 +10,165,p);
+
+        //Player 3
+        p.setColor(game.players[2].color);
+        c.drawRect(19*width/24 ,5*height/6, width, height,p);
+
+        p.setColor(Color.BLACK);
+        p.setTextSize(24);
+        p.setTextAlign(Paint.Align.CENTER);
+        c.drawText("Player 3", 43*width/48-5 , 5* height/6 + 30, p);
+
+        p.setTextAlign(Paint.Align.LEFT);
+        c.drawText("Resource Cards: " + game.players[2].numResourceCards, 19*width/24 + 10, 5*height/6 + 65,p);
+        c.drawText("Development Cards: " + game.players[2].developmentCards, 19*width/24 + 10, 5*height/6 +90,p);
+        c.drawText("Points: " + game.players[2].points, 19*width/24 + 10, 5*height/6 +115,p);
+        c.drawText("Longest Road: " + game.players[2].longestRoad, 19*width/24 +10, 5*height/6 +140,p);
+        c.drawText("Largest Army: " + game.players[2].largestArmy,19*width/24 +10,5*height/6 + 165,p);
+
+        //Player 4
+        p.setColor(game.players[3].color);
+        c.drawRect(0,5*height/6, 5*width / 24, height,p);
+
+        p.setColor(Color.BLACK);
+        p.setTextSize(24);
+        p.setTextAlign(Paint.Align.CENTER);
+        c.drawText("Player 4", 5*width/48 -5, 5*height/6 + 30, p);
+
+        p.setTextAlign(Paint.Align.LEFT);
+        c.drawText("Resource Cards: " + game.players[3].numResourceCards, 10, 5*height/6 +65,p);
+        c.drawText("Development Cards: " + game.players[3].developmentCards, 10, 5*height/6 +90,p);
+        c.drawText("Points: " + game.players[3].points, 10, 5*height/6 +115,p);
+        c.drawText("Longest Road: " + game.players[3].longestRoad, 10, 5*height/6 +140,p);
+        c.drawText("Largest Army: " + game.players[3].largestArmy,10,5*height/6 +165,p);
+
+
+    }
 
 }

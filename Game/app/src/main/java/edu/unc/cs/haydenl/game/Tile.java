@@ -1,8 +1,5 @@
 package edu.unc.cs.haydenl.game;
 
-import android.graphics.Color;
-import android.graphics.Path;
-
 /**
  * Created by hayden on 10/9/17.
  */

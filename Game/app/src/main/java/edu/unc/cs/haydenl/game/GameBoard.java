@@ -10,15 +10,21 @@ import android.util.Log;
 public class GameBoard {
 
     public Tile[] tiles;
+    public Player[] players;
     public int woodCount = 0, wheatCount = 0, brickCount = 0, rockCount = 0, sheepCount = 0, desertCount = 0, counter;
 
     public GameBoard(){
         tiles = new Tile[19];
-        for(int i = 0; i < 19; i++ ){
+        players  = new Player[4];
+        for(int i = 0; i < tiles.length; i++ ){
             tiles[i] = assignType();
+        }
+        for(int i = 1; i <= players.length; i++){
+            players[i-1] = new Player(i);
         }
         counter = 0;
     }
+
     public Tile getTileForBoard(){
         Tile t = tiles[counter];
         counter++;
