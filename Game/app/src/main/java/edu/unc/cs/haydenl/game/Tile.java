@@ -7,12 +7,9 @@ package edu.unc.cs.haydenl.game;
 public class Tile {
 
     public enum RESOURCE_TYPE {WHEAT, ROCK, BRICK, SHEEP, WOOD, DESERT}
-
-    ;
     public Spot[] spots;
     public RESOURCE_TYPE type;
     public int color, counter, number;
-
 
     public Tile(RESOURCE_TYPE t, int c) {
         spots = new Spot[6];
@@ -24,8 +21,6 @@ public class Tile {
         counter = 0;
         number = 0;
     }
-
-
 
     public boolean canSettle(int i) {
         if (i > 0) {
@@ -78,6 +73,7 @@ class Spot {
         x = 0;
         y = 0;
     }
+
     public Spot(int x, int y, int player){
 
     }

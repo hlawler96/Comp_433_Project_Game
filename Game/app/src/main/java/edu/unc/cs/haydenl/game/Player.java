@@ -45,6 +45,7 @@ public class Player {
         cards.put(type, cards.get(type) + 1);
         numResourceCards++;
     }
+
     public void useResource(Tile.RESOURCE_TYPE type) {
         cards.put(type, cards.get(type) - 1);
         numResourceCards--;
@@ -66,16 +67,19 @@ public class Player {
         }
         return points;
     }
+
     public int addLongestRoad(){
         points += 2;
         hasLongestRoad = true;
         return points;
     }
+
     public int addLargestArmy(){
         points+=2;
         hasLargestArmy = true;
         return points;
     }
+
     public void addToLongestRoad(){
         longestRoad++;
     }

@@ -16,27 +16,20 @@ public class GameBoard {
     public Tile[] tiles;
     public Player[] players;
     public int woodCount = 0, wheatCount = 0, brickCount = 0, rockCount = 0, sheepCount = 0, desertCount = 0, counter;
-    public ArrayList<Integer> numbers;
+    public int[] numbers;
     public Port[] ports;
+
     public GameBoard(){
         tiles = new Tile[19];
         players  = new Player[4];
-        fillNumbers();
         for(int i = 0; i < tiles.length; i++ ){
             tiles[i] = assignType();
-            if(tiles[i].type != Tile.RESOURCE_TYPE.DESERT) {
-                tiles[i].number = numbers.get(0);
-                numbers.remove(0);
-            }else{
-                tiles[i].number = 0;
-            }
         }
-
+        fillNumbers();
+        counter = 0;
         for(int i = 1; i <= players.length; i++){
             players[i-1] = new Player(i);
         }
-        counter = 0;
-
         fillPorts();
 
     }
@@ -80,27 +73,62 @@ public class GameBoard {
     }
 
     public void fillNumbers(){
-        numbers = new ArrayList<Integer>();
-        numbers.add(2);
-        numbers.add(3);
-        numbers.add(3);
-        numbers.add(4);
-        numbers.add(4);
-        numbers.add(5);
-        numbers.add(5);
-        numbers.add(6);
-        numbers.add(6);
-        numbers.add(8);
-        numbers.add(8);
-        numbers.add(9);
-        numbers.add(9);
-        numbers.add(10);
-        numbers.add(10);
-        numbers.add(11);
-        numbers.add(11);
-        numbers.add(12);
-        Collections.shuffle(numbers);
+        int rand = (int) (Math.random()*6);
+        if(rand == 0) {
+            int[] indicies = {0,1,2,6,11,15,18,17,16,12,7,3,4,5,10,14,13,8,9};
+            giveTilesNumbers(indicies);
+        }else if(rand == 1){
+            int[] indicies = {2,6,11,15,18,17,16,12,7,3,0,1,5,10,14,13,8,4,9};
+            giveTilesNumbers(indicies);
+        }else if(rand == 2){
+            int[] indicies = {11,15,18,17,16,12,7,3,0,1,2,6,10,14,13,8,4,5,9};
+            giveTilesNumbers(indicies);
+        }else if(rand == 3){
+            int[] indicies = {18,17,16,12,7,3,0,1,2,6,11,15,14,13,8,4,5,10,9};
+            giveTilesNumbers(indicies);
+        }else if(rand == 4){
+            int[] indicies = {16,12,7,3,0,1,2,6,11,15,18,17,13,8,4,5,10,14,9};
+            giveTilesNumbers(indicies);
+        }else{
+            int[] indicies = {7,3,0,1,2,6,11,15,18,17,16,12,8,4,5,10,14,13,9};
+            giveTilesNumbers(indicies);
+        }
+    }
 
+    public void giveTilesNumbers(int[] indicies){
+        int[] startNumbers = new int[18];
+        numbers = new int[18];
+        startNumbers[0] = 5;
+        startNumbers[1] = 2;
+        startNumbers[2] = 6;
+        startNumbers[3] = 3;
+        startNumbers[4] = 8;
+        startNumbers[5] = 10;
+        startNumbers[6] = 9;
+        startNumbers[7] = 12;
+        startNumbers[8] = 11;
+        startNumbers[9] = 4;
+        startNumbers[10] = 8;
+        startNumbers[11] = 10;
+        startNumbers[12] = 9;
+        startNumbers[13] = 4;
+        startNumbers[14] = 5;
+        startNumbers[15] = 6;
+        startNumbers[16] = 3;
+        startNumbers[17] = 11;
+        boolean hitDesert = false;
+
+        for(int i = 0; i < indicies.length;i++){
+            if(tiles[indicies[i]].type == Tile.RESOURCE_TYPE.DESERT){
+                hitDesert = true;
+                tiles[indicies[i]].number = 0;
+            }else if(!hitDesert){
+                tiles[indicies[i]].number = startNumbers[i];
+            }else{
+                tiles[indicies[i]].number = startNumbers[i-1];
+            }
+
+        }
     }
 
     public void fillPorts(){
