@@ -1,5 +1,7 @@
 package edu.unc.cs.haydenl.game;
 
+import android.graphics.Color;
+
 /**
  * Created by hayden on 10/9/17.
  */
@@ -11,13 +13,13 @@ public class Tile {
     public RESOURCE_TYPE type;
     public int color, counter, number;
 
-    public Tile(RESOURCE_TYPE t, int c) {
+    public Tile(RESOURCE_TYPE t) {
         spots = new Spot[6];
         type = t;
         for (int i = 0; i < spots.length; i++) {
             spots[i] = new Spot();
         }
-        color = c;
+        color = typeToColor(type);
         counter = 0;
         number = 0;
     }
@@ -60,6 +62,26 @@ public class Tile {
         if(i == 5) return RESOURCE_TYPE.DESERT;
         return null;
     }
+
+    public int typeToColor(RESOURCE_TYPE t){
+        int color;
+        if(t == RESOURCE_TYPE.WOOD){
+            color = Color.rgb(160,82,45);
+        }else if(t == RESOURCE_TYPE.BRICK){
+            color = Color.RED;
+        }else if(t == RESOURCE_TYPE.WHEAT){
+            color = Color.YELLOW;
+        }else if(t == RESOURCE_TYPE.ROCK) {
+            color = Color.GRAY;
+        }else if(t == RESOURCE_TYPE.SHEEP) {
+            color = Color.GREEN;
+        }else if (t == RESOURCE_TYPE.DESERT){
+            color = Color.rgb(255,222,173);
+        }else{
+            color = Color.WHITE;
+        }
+        return color;
+    }
 }
 
 class Spot {
@@ -72,10 +94,6 @@ class Spot {
         _city = false;
         x = 0;
         y = 0;
-    }
-
-    public Spot(int x, int y, int player){
-
     }
 
     public void settle(int player){
@@ -96,12 +114,19 @@ class Port {
 
     Spot left, right;
     Tile.RESOURCE_TYPE type;
+    int _x, _y, color;
 
     public Port(Spot l, Spot r, Tile.RESOURCE_TYPE t){
         left = l;
         right = r;
         type = t;
     }
+
+    public void setCoord(int x, int y){
+        _x = x;
+        _y = y;
+    }
+
 
 
 

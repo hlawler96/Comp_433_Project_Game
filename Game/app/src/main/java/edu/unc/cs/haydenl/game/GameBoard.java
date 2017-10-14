@@ -36,6 +36,7 @@ public class GameBoard {
 
     public Tile getTileForBoard(){
         Tile t = tiles[counter];
+
         counter++;
         if(counter > tiles.length) return null;
         return t;
@@ -45,28 +46,22 @@ public class GameBoard {
         Tile.RESOURCE_TYPE type = Tile.random();
         if(woodCount != 4 & type == Tile.RESOURCE_TYPE.WOOD){
             woodCount ++;
-            Log.v("RESOURCE_TEST", "type: " + type + " count: " + woodCount);
-            return new Tile(type, Color.rgb(160,82,45));
+            return new Tile(type);
         }else if( wheatCount != 4 && type == Tile.RESOURCE_TYPE.WHEAT){
             wheatCount++;
-            Log.v("RESOURCE_TEST", "type: " + type + " count: " + wheatCount);
-            return new Tile(type, Color.YELLOW);
+            return new Tile(type);
         }else if( brickCount != 3 && type == Tile.RESOURCE_TYPE.BRICK){
             brickCount++;
-            Log.v("RESOURCE_TEST", "type: " + type + " count: " + brickCount);
-            return new Tile(type, Color.RED);
+            return new Tile(type);
         }else if( rockCount != 3 && type == Tile.RESOURCE_TYPE.ROCK){
             rockCount++;
-            Log.v("RESOURCE_TEST", "type: " + type + " count: " + rockCount);
-            return new Tile(type, Color.GRAY);
+            return new Tile(type);
         }else if( sheepCount != 4 && type == Tile.RESOURCE_TYPE.SHEEP){
             sheepCount++;
-            Log.v("RESOURCE_TEST", "type: " + type + " count: " + sheepCount);
-            return new Tile(type, Color.GREEN);
+            return new Tile(type);
         }else if (desertCount != 1 && type == Tile.RESOURCE_TYPE.DESERT){
             desertCount++;
-            Log.v("RESOURCE_TEST", "type: " + type + " count: " + desertCount);
-            return new Tile(type, Color.rgb(255,222,173));
+            return new Tile(type);
         }else{
             return assignType();
         }
@@ -133,15 +128,54 @@ public class GameBoard {
 
     public void fillPorts(){
         ports = new Port[9];
-        ports[0] = new Port(tiles[0].spots[5], tiles[0].spots[0], Tile.RESOURCE_TYPE.WOOD);
-        ports[1] = new Port(tiles[1].spots[0], tiles[1].spots[1], null);
-        ports[2] = new Port(tiles[6].spots[0], tiles[6].spots[1], Tile.RESOURCE_TYPE.BRICK);
-        ports[3] = new Port(tiles[11].spots[1], tiles[11].spots[2], null);
-        ports[4] = new Port(tiles[15].spots[2], tiles[15].spots[3], Tile.RESOURCE_TYPE.SHEEP);
-        ports[5] = new Port(tiles[17].spots[2], tiles[17].spots[3], null);
-        ports[6] = new Port(tiles[16].spots[3], tiles[16].spots[4], Tile.RESOURCE_TYPE.ROCK);
-        ports[7] = new Port(tiles[12].spots[4], tiles[12].spots[5], null);
-        ports[8] = new Port(tiles[3].spots[4], tiles[3].spots[5], Tile.RESOURCE_TYPE.WHEAT);
+        ports[0] = new Port(tiles[0].spots[0], tiles[0].spots[5], Tile.RESOURCE_TYPE.WOOD);
+        ports[1] = new Port(tiles[1].spots[1], tiles[1].spots[0], null);
+        ports[2] = new Port(tiles[6].spots[1], tiles[6].spots[0], Tile.RESOURCE_TYPE.BRICK);
+        ports[3] = new Port(tiles[11].spots[2], tiles[11].spots[1], null);
+        ports[4] = new Port(tiles[15].spots[3], tiles[15].spots[2], Tile.RESOURCE_TYPE.SHEEP);
+        ports[5] = new Port(tiles[17].spots[3], tiles[17].spots[2], null);
+        ports[6] = new Port(tiles[16].spots[4], tiles[16].spots[3], Tile.RESOURCE_TYPE.ROCK);
+        ports[7] = new Port(tiles[12].spots[5], tiles[12].spots[4], null);
+        ports[8] = new Port(tiles[3].spots[5], tiles[3].spots[4], Tile.RESOURCE_TYPE.WHEAT);
+    }
+
+    public void givePortsCoords(){
+        for(int i = 0; i < ports.length;i++) {
+            int dy = Math.abs(ports[i].right.y - ports[i].left.y) / 2;
+            int dx = Math.abs(ports[i].left.x - ports[i].right.x) / 2;
+            int x,y;
+            if(i == 0 || i == 7 || i == 8) {
+                x = ports[i].right.x + dx - dy;
+                y = ports[i].right.y - dy - dx;
+            }else if (i == 1 || i == 2 || i == 3){
+                x = ports[i].left.x - dx +dy;
+                y = ports[i].left.y - dy - dx;
+            }else if(i ==4 || i == 5){
+                x = ports[i].left.x + dx + dy;
+                y = ports[i].left.y - dy + dx;
+            }else {
+                x = ports[i].left.x + dx - dy;
+                y = ports[i].left.y + dy + dx;
+            }
+            ports[i].setCoord(x, y);
+        }
+
+
+    }
+
+    public void giveTilesCoords(int startX, int startY, int iter, int sideLength, int dx, int dy){
+
+        for(int i = 0; i < iter*2; i+=2){
+            Tile t = getTileForBoard();
+            double length = Math.sqrt(Math.pow(dx,2) + Math.pow(dy,2));
+            t.storeCoordinates(startX + i*dx,startY); //cos(30 deg)
+            t.storeCoordinates(startX + dx + i*dx, startY + dy);
+            t.storeCoordinates(startX + dx + i*dx, startY + dy + sideLength);
+            t.storeCoordinates(startX + i*dx, startY + 2*dy + sideLength);
+            t.storeCoordinates(startX - dx + i*dx, startY + dy + sideLength);
+            t.storeCoordinates(startX - dx + i*dx, startY + dy);
+        }
+
     }
 
 

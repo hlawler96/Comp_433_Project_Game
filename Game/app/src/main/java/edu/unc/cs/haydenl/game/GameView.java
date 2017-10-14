@@ -9,6 +9,7 @@ import android.os.Build;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -20,7 +21,7 @@ import java.util.ArrayList;
 @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
 public class GameView extends View {
 
-    int width, height;
+    int width, height, sideLength;
     ArrayList<Spot> settlements;
     GameBoard game;
     boolean setup;
@@ -51,6 +52,7 @@ public class GameView extends View {
         setup = false;
         settlements = new ArrayList<Spot>();
 
+
         this.setOnTouchListener(new OnTouchListener(){
             @Override
             public boolean onTouch(View v, MotionEvent event){
@@ -66,12 +68,29 @@ public class GameView extends View {
     public void onDraw(Canvas c){
         width = getWidth();
         height = getHeight();
+
+        if(!setup){
+            //Setup done here so the value of width is right, given 0 when called in init()
+            sideLength = width/18;
+            game.counter = 0;
+            int dx = (int) Math.round(sideLength*Math.cos(0.523599));
+            int dy = (int) Math.round(sideLength*Math.sin(0.523599));
+            int startX = width/2 - 2*dx;
+            int startY = (int) (height / 2 - (2*dy + 2.5*sideLength));
+            game.giveTilesCoords(startX,startY,3,sideLength,dx,dy);
+            game.giveTilesCoords(startX-dx, startY + dy + sideLength,4, sideLength,dx,dy);
+            game.giveTilesCoords(startX-2*dx, startY + 2*dy + 2*sideLength,5, sideLength,dx,dy);
+            game.giveTilesCoords(startX-dx, startY + 3*dy + 3*sideLength,4, sideLength,dx,dy);
+            game.giveTilesCoords(startX, startY + 4*dy + 4*sideLength,3, sideLength,dx,dy);
+            setup = true;
+            game.givePortsCoords();
+        }
         Paint p = new Paint();
         drawOcean(c,p);
-        drawTiles(c,p);
-        drawSettlements(c,p);
         drawPlayerBoxes(c,p);
+        drawTiles(c,p);
         drawPorts(c,p);
+        drawSettlements(c,p);
     }
 
     public void onTouch(float x, float y){
@@ -80,13 +99,13 @@ public class GameView extends View {
         for(Tile t: game.tiles){
             for(Spot s: t.spots){
                 double distance = Math.sqrt(Math.pow(x-s.x,2) + Math.pow(y-s.y,2));
-                if(distance < min){
+                if(distance < min ){
                     minSpot = s;
                     min = distance;
                 }
             }
         }
-        minSpot._player = 1;
+        if(min < sideLength*1.5) minSpot._player = 1;
         this.invalidate();
 
     }
@@ -98,217 +117,46 @@ public class GameView extends View {
     }
 
     private void drawTiles(Canvas c, Paint p){
-        game.counter = 0;
-        //top row
-        for(int i = 0; i < 6; i+= 2){
-            Tile t = game.getTileForBoard();
-            if(!setup) {
-                t.storeCoordinates(5* width / 16 + (i + 1) * (width / 16), height / 10 + height/15);
-                t.storeCoordinates(5* width / 16 + (i + 2) * (width / 16), height / 6 + height/15);
-                t.storeCoordinates(5* width / 16 + (i + 2) * (width / 16), 7 * height / 30 + height/15);
-                t.storeCoordinates(5* width / 16 + (i + 1) * (width / 16), 3 * height / 10 + height/15) ;
-                t.storeCoordinates(5* width / 16 + i * (width / 16), 7 * height / 30 + height/15) ;
-                t.storeCoordinates(5* width / 16 + i * (width / 16), height / 6 + height/15);
-            }
+
+        for(Tile t: game.tiles){
+            //Represent Tiles as paths for now,
+            //TODO Add Graphics for Tiles
+
             Path path = new Path();
-            path.moveTo(t.spots[0].x,t.spots[0].y);
-            path.lineTo(t.spots[1].x,t.spots[1].y);
-            path.lineTo(t.spots[2].x,t.spots[2].y);
-            path.lineTo(t.spots[3].x,t.spots[3].y);
-            path.lineTo(t.spots[4].x,t.spots[4].y);
-            path.lineTo(t.spots[5].x,t.spots[5].y);
-            path.lineTo(t.spots[0].x,t.spots[0].y);
-
+            path.moveTo(t.spots[0].x, t.spots[0].y);
+            path.lineTo(t.spots[1].x, t.spots[1].y);
+            path.lineTo(t.spots[2].x, t.spots[2].y);
+            path.lineTo(t.spots[3].x, t.spots[3].y);
+            path.lineTo(t.spots[4].x, t.spots[4].y);
+            path.lineTo(t.spots[5].x, t.spots[5].y);
+            path.lineTo(t.spots[0].x, t.spots[0].y);
             int color = t.color;
             p.setColor(color);
             p.setStyle(Paint.Style.FILL_AND_STROKE);
             c.drawPath(path, p);
+
+            //Draws outline Of tiles
             p.setColor(Color.BLACK);
             p.setStyle(Paint.Style.STROKE);
             p.setStrokeWidth(1);
-            c.drawPath(path,p);
+            c.drawPath(path, p);
 
+            //Draws circles for numbers if they arent the desert
             int centerX = t.spots[0].x;
-            int centerY = t.spots[1].y + 3*(t.spots[2].y -t.spots[1].y)/4;
-            p.setColor(Color.WHITE);
-            p.setStyle(Paint.Style.FILL_AND_STROKE);
-            c.drawCircle(centerX, centerY - 20, 60, p);
+            int centerY = t.spots[1].y + 3 * (t.spots[2].y - t.spots[1].y) / 4;
+            if(t.type!= Tile.RESOURCE_TYPE.DESERT){
+                p.setColor(Color.WHITE);
+                p.setStyle(Paint.Style.FILL_AND_STROKE);
+                c.drawCircle(centerX, centerY - 20, sideLength / 2, p);
+            }
+            //draws numbers associated with tiles
             p.setColor(Color.BLACK);
             if(t.number == 6 || t.number == 8) p.setColor(Color.RED);
             p.setTextAlign(Paint.Align.CENTER);
             p.setTextSize(64);
             if(t.number != 0)c.drawText("" + t.number, centerX, centerY, p);
         }
-        //second row
-        for(int i =0; i < 8; i+=2){
-            Tile t = game.getTileForBoard();
-            if(!setup) {
-                t.storeCoordinates(width / 4 + (i + 1) * (width / 16), 7 * height / 30 + height/15);
-                t.storeCoordinates(width / 4 + (i + 2) * (width / 16), 7 * height / 30 + 2 * height / 15);
-                t.storeCoordinates(width / 4 + (i + 2) * (width / 16), 7 * height / 30 + 3 * height / 15);
-                t.storeCoordinates(width / 4 + (i + 1) * (width / 16), 7 * height / 30 + 4 * height / 15);
-                t.storeCoordinates(width / 4 + i * (width / 16), 7 * height / 30 + 3 * height / 15);
-                t.storeCoordinates(width / 4 + i * (width / 16), 7 * height / 30 + 2 * height / 15);
-            }
 
-            Path path  = new Path();
-            path.moveTo(t.spots[0].x,t.spots[0].y);
-            path.lineTo(t.spots[1].x,t.spots[1].y);
-            path.lineTo(t.spots[2].x,t.spots[2].y);
-            path.lineTo(t.spots[3].x,t.spots[3].y);
-            path.lineTo(t.spots[4].x,t.spots[4].y);
-            path.lineTo(t.spots[5].x,t.spots[5].y);
-            path.lineTo(t.spots[0].x,t.spots[0].y);
-
-            int color = t.color;
-            p.setColor(color);
-            p.setStyle(Paint.Style.FILL_AND_STROKE);
-            c.drawPath(path, p);
-            p.setColor(Color.BLACK);
-            p.setStyle(Paint.Style.STROKE);
-            p.setStrokeWidth(1);
-            c.drawPath(path,p);
-
-            int centerX = t.spots[0].x;
-            int centerY = t.spots[1].y + 3*(t.spots[2].y -t.spots[1].y)/4;
-            p.setColor(Color.WHITE);
-            p.setStyle(Paint.Style.FILL_AND_STROKE);
-            c.drawCircle(centerX, centerY-20, 60, p);
-            p.setColor(Color.BLACK);
-            if(t.number == 6 || t.number == 8) p.setColor(Color.RED);
-            p.setStyle(Paint.Style.FILL_AND_STROKE);
-            p.setTextAlign(Paint.Align.CENTER);
-            p.setTextSize(64);
-            if(t.number != 0)c.drawText("" + t.number, centerX, centerY, p);
-        }
-
-        //third row
-        for(int i =0; i < 10; i+=2){
-            Tile t = game.getTileForBoard();
-            if(!setup) {
-                t.storeCoordinates(3*width / 16 + (i + 1) * (width / 16), 7 * height / 30 + 3 * height / 15);
-                t.storeCoordinates(3*width / 16 + (i + 2) * (width / 16), 7 * height / 30 + 4 * height / 15);
-                t.storeCoordinates(3*width / 16 + (i + 2) * (width / 16), 7 * height / 30 + 5 * height / 15);
-                t.storeCoordinates(3*width / 16 + (i + 1) * (width / 16), 7 * height / 30 + 6 * height / 15);
-                t.storeCoordinates(3*width / 16 + i * (width / 16), 7 * height / 30 + 5 * height / 15);
-                t.storeCoordinates(3*width / 16 + i * (width / 16), 7 * height / 30 + 4 * height / 15);
-            }
-            Path path  = new Path();
-            path.moveTo(t.spots[0].x,t.spots[0].y);
-            path.lineTo(t.spots[1].x,t.spots[1].y);
-            path.lineTo(t.spots[2].x,t.spots[2].y);
-            path.lineTo(t.spots[3].x,t.spots[3].y);
-            path.lineTo(t.spots[4].x,t.spots[4].y);
-            path.lineTo(t.spots[5].x,t.spots[5].y);
-            path.lineTo(t.spots[0].x,t.spots[0].y);
-
-            int color = t.color;
-            p.setColor(color);
-            p.setStyle(Paint.Style.FILL_AND_STROKE);
-            c.drawPath(path, p);
-            p.setColor(Color.BLACK);
-            p.setStyle(Paint.Style.STROKE);
-            p.setStrokeWidth(1);
-            c.drawPath(path,p);
-
-            int centerX = t.spots[0].x;
-            int centerY = t.spots[1].y + 3*(t.spots[2].y -t.spots[1].y)/4;
-            p.setColor(Color.WHITE);
-            p.setStyle(Paint.Style.FILL_AND_STROKE);
-            c.drawCircle(centerX, centerY-20, 60, p);
-            p.setColor(Color.BLACK);
-            if(t.number == 6 || t.number == 8) p.setColor(Color.RED);
-            p.setStyle(Paint.Style.FILL_AND_STROKE);
-            p.setTextAlign(Paint.Align.CENTER);
-            p.setTextSize(64);
-            if(t.number != 0)c.drawText("" + t.number, centerX, centerY, p);
-        }
-
-        //fourth row
-        for(int i =0; i < 8; i+=2){
-            Tile t = game.getTileForBoard();
-            if(!setup) {
-                t.storeCoordinates(width / 4 + (i + 1) * (width / 16), 7 * height / 30 + 5 * height / 15);
-                t.storeCoordinates(width / 4 + (i + 2) * (width / 16), 7 * height / 30 + 6 * height / 15);
-                t.storeCoordinates(width / 4 + (i + 2) * (width / 16), 7 * height / 30 + 7 * height / 15);
-                t.storeCoordinates(width / 4 + (i + 1) * (width / 16), 7 * height / 30 + 8 * height / 15);
-                t.storeCoordinates(width / 4 + i * (width / 16), 7 * height / 30 + 7 * height / 15);
-                t.storeCoordinates(width / 4 + i * (width / 16), 7 * height / 30 + 6 * height / 15);
-            }
-            Path path  = new Path();
-            path.moveTo(t.spots[0].x,t.spots[0].y);
-            path.lineTo(t.spots[1].x,t.spots[1].y);
-            path.lineTo(t.spots[2].x,t.spots[2].y);
-            path.lineTo(t.spots[3].x,t.spots[3].y);
-            path.lineTo(t.spots[4].x,t.spots[4].y);
-            path.lineTo(t.spots[5].x,t.spots[5].y);
-            path.lineTo(t.spots[0].x,t.spots[0].y);
-
-            int color = t.color;
-            p.setColor(color);
-            p.setStyle(Paint.Style.FILL_AND_STROKE);
-            c.drawPath(path, p);
-            p.setColor(Color.BLACK);
-            p.setStyle(Paint.Style.STROKE);
-            p.setStrokeWidth(1);
-            c.drawPath(path,p);
-
-            int centerX = t.spots[0].x;
-            int centerY = t.spots[1].y + 3*(t.spots[2].y -t.spots[1].y)/4;
-            p.setColor(Color.WHITE);
-            p.setStyle(Paint.Style.FILL_AND_STROKE);
-            c.drawCircle(centerX, centerY-20, 60, p);
-            p.setColor(Color.BLACK);
-            if(t.number == 6 || t.number == 8) p.setColor(Color.RED);
-            p.setStyle(Paint.Style.FILL_AND_STROKE);
-            p.setTextAlign(Paint.Align.CENTER);
-            p.setTextSize(64);
-            if(t.number != 0)c.drawText("" + t.number, centerX, centerY, p);
-        }
-
-        //fifth row
-        for(int i =0; i < 6; i+=2){
-            Tile t = game.getTileForBoard();
-            if(!setup) {
-                t.storeCoordinates(5*width / 16 + (i + 1) * (width / 16), 7 * height / 30 + 7 * height / 15);
-                t.storeCoordinates(5*width / 16 + (i + 2) * (width / 16), 7 * height / 30 + 8 * height / 15);
-                t.storeCoordinates(5*width / 16 + (i + 2) * (width / 16), 7 * height / 30 + 9 * height / 15);
-                t.storeCoordinates(5*width / 16 + (i + 1) * (width / 16), 7 * height / 30 + 10 * height / 15);
-                t.storeCoordinates(5*width / 16 + i * (width / 16), 7 * height / 30 + 9 * height / 15);
-                t.storeCoordinates(5*width / 16 + i * (width / 16), 7 * height / 30 + 8 * height / 15);
-                if(i == 4)setup = true;
-            }
-
-            Path path  = new Path();
-            path.moveTo(t.spots[0].x,t.spots[0].y);
-            path.lineTo(t.spots[1].x,t.spots[1].y);
-            path.lineTo(t.spots[2].x,t.spots[2].y);
-            path.lineTo(t.spots[3].x,t.spots[3].y);
-            path.lineTo(t.spots[4].x,t.spots[4].y);
-            path.lineTo(t.spots[5].x,t.spots[5].y);
-            path.lineTo(t.spots[0].x,t.spots[0].y);
-
-            int color = t.color;
-            p.setColor(color);
-            p.setStyle(Paint.Style.FILL_AND_STROKE);
-            c.drawPath(path, p);
-            p.setColor(Color.BLACK);
-            p.setStyle(Paint.Style.STROKE);
-            p.setStrokeWidth(1);
-            c.drawPath(path,p);
-
-            int centerX = t.spots[0].x;
-            int centerY = t.spots[1].y + 3*(t.spots[2].y -t.spots[1].y)/4;
-            p.setColor(Color.WHITE);
-            p.setStyle(Paint.Style.FILL_AND_STROKE);
-            c.drawCircle(centerX, centerY-20, 60, p);
-            p.setColor(Color.BLACK);
-            if(t.number == 6 || t.number == 8) p.setColor(Color.RED);
-            p.setStyle(Paint.Style.FILL_AND_STROKE);
-            p.setTextAlign(Paint.Align.CENTER);
-            p.setTextSize(64);
-            if(t.number != 0) c.drawText("" + t.number, centerX, centerY, p);
-        }
 
     }
 
@@ -399,9 +247,15 @@ public class GameView extends View {
         p.setColor(Color.CYAN);
         p.setStyle(Paint.Style.FILL_AND_STROKE);
         for(Port prt: ports){
-            c.drawCircle(prt.left.x, prt.left.y, 10, p);
-            c.drawCircle(prt.right.x, prt.right.y, 10, p);
+            p.setStrokeWidth(10);
+            p.setColor(Color.rgb(139,69,19));
+            c.drawLine(prt.left.x,prt.left.y,prt._x, prt._y,p);
+            c.drawLine(prt.right.x,prt.right.y,prt._x, prt._y,p);
+            p.setColor(game.tiles[0].typeToColor(prt.type));
+            c.drawCircle(prt._x,prt._y,sideLength/6,p);
+
         }
+
     }
 
 }
