@@ -1,6 +1,7 @@
 package edu.unc.cs.haydenl.game;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -9,7 +10,6 @@ import android.os.Build;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -25,6 +25,7 @@ public class GameView extends View {
     ArrayList<Spot> settlements;
     GameBoard game;
     boolean setup;
+    Context context;
 
     public GameView(Context context) {
         super(context);
@@ -46,12 +47,11 @@ public class GameView extends View {
         init(context);
     }
 
-    public void init(Context context
-    ){
+    public void init(Context c){
         game = new GameBoard();
         setup = false;
         settlements = new ArrayList<Spot>();
-
+        context = c;
 
         this.setOnTouchListener(new OnTouchListener(){
             @Override
@@ -71,7 +71,7 @@ public class GameView extends View {
 
         if(!setup){
             //Setup done here so the value of width is right, given 0 when called in init()
-            sideLength = width/18;
+            sideLength = width/19;
             game.counter = 0;
             int dx = (int) Math.round(sideLength*Math.cos(0.523599));
             int dy = (int) Math.round(sideLength*Math.sin(0.523599));
@@ -90,22 +90,50 @@ public class GameView extends View {
         drawPlayerBoxes(c,p);
         drawTiles(c,p);
         drawPorts(c,p);
+        drawCurrentPlayerResources(c,p);
+        drawMessageBar(c,p);
         drawSettlements(c,p);
+        drawMenu(c);
+
     }
 
     public void onTouch(float x, float y){
-        double min = 100000;
-        Spot minSpot = null;
-        for(Tile t: game.tiles){
-            for(Spot s: t.spots){
-                double distance = Math.sqrt(Math.pow(x-s.x,2) + Math.pow(y-s.y,2));
-                if(distance < min ){
-                    minSpot = s;
-                    min = distance;
+        double min = 150;
+        if(game.gameLogic.state == GameLogic.GAME_STATE.STEADY) {
+            Spot minSpot = null;
+            for (Tile t : game.tiles) {
+                for (Spot s : t.spots) {
+                    double distance = Math.sqrt(Math.pow(x - s.x, 2) + Math.pow(y - s.y, 2));
+                    if (distance < min) {
+                        minSpot = s;
+                        min = distance;
+                    }
                 }
             }
+            //check for button click
+            double distance = Math.sqrt(Math.pow(x - (width-80),2) + Math.pow(y - height/2, 2));
+            if(distance < min){
+                game.gameLogic.state = GameLogic.GAME_STATE.MAIN_MENU;
+            }else if (min < sideLength * 1.5) {
+                minSpot._player = game.gameLogic.currentPlayer.id;
+            }
+
+        }else if (game.gameLogic.state == GameLogic.GAME_STATE.MAIN_MENU){
+            if(x < width/8 || x > 7*width/8 || y < height/4 || y > 3*height/4){
+                game.gameLogic.state = GameLogic.GAME_STATE.STEADY;
+            }else if(x < 3*width/8){
+                game.gameLogic.state = GameLogic.GAME_STATE.MENU_BUILD;
+            }else if(x < 5*width/8){
+                game.gameLogic.state = GameLogic.GAME_STATE.MENU_TRADE;
+            }else{
+                quit();
+            }
+        }else if(game.gameLogic.state == GameLogic.GAME_STATE.MENU_BUILD){
+            Player p = game.gameLogic.currentPlayer;
+            if(x < width/8 || x > 7*width/8 || y < height/4 || y > 3*height/4){
+                game.gameLogic.state = GameLogic.GAME_STATE.STEADY;
+            }
         }
-        if(min < sideLength*1.5) minSpot._player = 1;
         this.invalidate();
 
     }
@@ -257,5 +285,156 @@ public class GameView extends View {
         }
 
     }
+
+    private void drawMenu(Canvas c){
+
+        Paint fullBoxPaint = new Paint();
+        fullBoxPaint.setColor(Color.rgb(222,184,135));
+        fullBoxPaint.setStyle(Paint.Style.FILL_AND_STROKE);
+
+        Paint textPaint = new Paint();
+        textPaint.setColor(Color.BLACK);
+        textPaint.setStrokeWidth(2);
+        textPaint.setStyle(Paint.Style.FILL_AND_STROKE);
+        textPaint.setTextSize(64);
+        textPaint.setTextAlign(Paint.Align.CENTER);
+
+
+        Paint boxOutline = new Paint();
+        boxOutline.setStyle(Paint.Style.STROKE);
+        boxOutline.setStrokeWidth(10);
+        boxOutline.setColor(Color.BLACK);
+
+        Paint circlePaint = new Paint();
+        circlePaint.setColor(Color.BLACK);
+        circlePaint.setStyle(Paint.Style.FILL_AND_STROKE);
+        circlePaint.setTextSize(64);
+        circlePaint.setTextAlign(Paint.Align.CENTER);
+
+        if(game.gameLogic.state == GameLogic.GAME_STATE.STEADY){
+            c.drawCircle(width - height/6 - 10, height/2, height / 12, circlePaint);
+            circlePaint.setColor(Color.WHITE);
+            c.drawText("B", width-height/6 - 10, height/2 + 20 , circlePaint);
+
+        }else if(game.gameLogic.state == GameLogic.GAME_STATE.MAIN_MENU){
+            c.drawRect(width/8, height/4, 3*width/8, 3*height/4,fullBoxPaint);
+            c.drawRect(width/8, height/4, 3*width/8, 3*height/4,boxOutline);
+            c.drawText("BUILD", width/4, height/2,textPaint);
+
+            c.drawRect(3*width/8, height/4, 5*width/8, 3*height/4,fullBoxPaint);
+            c.drawRect(3*width/8, height/4, 5*width/8, 3*height/4,boxOutline);
+            c.drawText("TRADE", width/2, height/2,textPaint);
+
+            c.drawRect(5*width/8, height/4, 7*width/8, 3*height/4,fullBoxPaint);
+            c.drawRect(5*width/8, height/4, 7*width/8, 3*height/4,boxOutline);
+            c.drawText("QUIT", 3*width/4, height/2,textPaint);
+        }else if (game.gameLogic.state == GameLogic.GAME_STATE.MENU_BUILD){
+            if(game.gameLogic.currentPlayer.canBuildSettlement()){
+                fullBoxPaint.setColor(Color.rgb(222,184,135));
+            }else{
+                fullBoxPaint.setColor(Color.GRAY);
+            }
+            c.drawRect(width/8, height/4, width/2, height/2,fullBoxPaint);
+            c.drawRect(width/8, height/4, width/2, height/2,boxOutline);
+            c.drawText("Settlement", 5*width/16, 3*height/8,textPaint);
+
+            if(game.gameLogic.currentPlayer.canBuildCity()){
+                fullBoxPaint.setColor(Color.rgb(222,184,135));
+            }else{
+                fullBoxPaint.setColor(Color.GRAY);
+            }
+            c.drawRect(width/2, height/4, 7*width/8, height/2,fullBoxPaint);
+            c.drawRect(width/2, height/4, 7*width/8, height/2,boxOutline);
+            c.drawText("City", 11 * width/16, 3*height/8,textPaint);
+
+            if(game.gameLogic.currentPlayer.canBuildDevCard()){
+                fullBoxPaint.setColor(Color.rgb(222,184,135));
+            }else {
+                fullBoxPaint.setColor(Color.GRAY);
+            }
+
+            c.drawRect(width/8, height/2, width/2, 3*height/4,fullBoxPaint);
+            c.drawRect(width/8, height/2, width/2, 3*height/4,boxOutline);
+            c.drawText("Dev. Card", 5*width/16, 5*height/8,textPaint);
+
+            if(game.gameLogic.currentPlayer.canBuildRoad()){
+                fullBoxPaint.setColor(Color.rgb(222,184,135));
+            }else{
+                fullBoxPaint.setColor(Color.GRAY);
+            }
+            c.drawRect(width/2, height/2, 7*width/8, 3*height/4,fullBoxPaint);
+            c.drawRect(width/2, height/2, 7*width/8, 3*height/4,boxOutline);
+            c.drawText("Road", 11*width/16, 5*height/8,textPaint);
+        }
+
+    }
+
+    private void drawCurrentPlayerResources(Canvas c, Paint p){
+
+        Paint textPaint = new Paint();
+        textPaint.setStrokeWidth(2);
+        textPaint.setColor(Color.BLACK);
+        textPaint.setStyle(Paint.Style.FILL_AND_STROKE);
+        textPaint.setTextSize(40);
+
+        Paint outline = new Paint();
+        outline.setColor(Color.BLACK);
+        outline.setStyle(Paint.Style.STROKE);
+        outline.setStrokeWidth(10);
+
+        p.setColor(game.gameLogic.currentPlayer.color);
+        p.setStyle(Paint.Style.FILL_AND_STROKE);
+
+        c.drawRect(5*width/24, 11*height/12 ,19*width/24, height, p);
+
+        p.setColor(game.tiles[0].typeToColor(Tile.RESOURCE_TYPE.WHEAT));
+        c.drawCircle(8*width/24 - width/48, 23*height/24, height/ 30, p);
+        c.drawCircle(8*width/24- width/48, 23*height/24, height/ 30, outline);
+
+        c.drawText("" + game.gameLogic.currentPlayer.cards.get(Tile.RESOURCE_TYPE.WHEAT), 9*width/24- width/48 - 10, 23*height/24, textPaint);
+
+        p.setColor(game.tiles[0].typeToColor(Tile.RESOURCE_TYPE.WOOD));
+        c.drawCircle(10*width/24- width/48, 23*height/24, height/ 30, p);
+        c.drawCircle(10*width/24- width/48, 23*height/24, height/ 30, outline);
+
+        c.drawText("" + game.gameLogic.currentPlayer.cards.get(Tile.RESOURCE_TYPE.WOOD), 11*width/24- width/48 - 10, 23*height/24, textPaint);
+
+        p.setColor(game.tiles[0].typeToColor(Tile.RESOURCE_TYPE.ROCK));
+        c.drawCircle(12*width/24- width/48, 23*height/24, height/ 30, p);
+        c.drawCircle(12*width/24- width/48, 23*height/24, height/ 30, outline);
+
+        c.drawText("" + game.gameLogic.currentPlayer.cards.get(Tile.RESOURCE_TYPE.ROCK), 13*width/24- width/48 - 10, 23*height/24, textPaint);
+
+        p.setColor(game.tiles[0].typeToColor(Tile.RESOURCE_TYPE.BRICK));
+        c.drawCircle(14*width/24- width/48, 23*height/24, height/ 30, p);
+        c.drawCircle(14*width/24- width/48, 23*height/24, height/ 30, outline);
+
+        c.drawText("" + game.gameLogic.currentPlayer.cards.get(Tile.RESOURCE_TYPE.BRICK), 15*width/24- width/48 - 10, 23*height/24, textPaint);
+
+        p.setColor(game.tiles[0].typeToColor(Tile.RESOURCE_TYPE.SHEEP));
+        c.drawCircle(16*width/24- width/48, 23*height/24, height/ 30, p);
+        c.drawCircle(16*width/24- width/48, 23*height/24, height/ 30, outline);
+
+        c.drawText("" + game.gameLogic.currentPlayer.cards.get(Tile.RESOURCE_TYPE.SHEEP), 17*width/24- width/48 - 10, 23*height/24, textPaint);
+
+
+    }
+
+    private void drawMessageBar(Canvas c, Paint p){
+        p.setStrokeWidth(2);
+        p.setStyle(Paint.Style.FILL_AND_STROKE);
+        p.setTextSize(64);
+        p.setTextAlign(Paint.Align.CENTER);
+        p.setColor(Color.WHITE);
+        c.drawText(game.gameLogic.message, width/2, height/18,p);
+
+    }
+
+    public void quit(){
+        Intent homeIntent = new Intent(context, MainActivity.class);
+        context.startActivity(homeIntent);
+    }
+
+
 
 }

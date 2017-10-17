@@ -18,6 +18,7 @@ public class GameBoard {
     public int woodCount = 0, wheatCount = 0, brickCount = 0, rockCount = 0, sheepCount = 0, desertCount = 0, counter;
     public int[] numbers;
     public Port[] ports;
+    public GameLogic gameLogic;
 
     public GameBoard(){
         tiles = new Tile[19];
@@ -31,6 +32,7 @@ public class GameBoard {
             players[i-1] = new Player(i);
         }
         fillPorts();
+        gameLogic = new GameLogic(this);
 
     }
 

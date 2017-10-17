@@ -88,5 +88,20 @@ public class Player {
         largestArmy++;
     }
 
+    public boolean canBuildRoad(){
+        return cards.get(Tile.RESOURCE_TYPE.WOOD) >= 1 && cards.get(Tile.RESOURCE_TYPE.BRICK) >= 1;
+    }
+    public boolean canBuildSettlement(){
+        return cards.get(Tile.RESOURCE_TYPE.BRICK) >= 1&& cards.get(Tile.RESOURCE_TYPE.WOOD) >= 1
+                && cards.get((Tile.RESOURCE_TYPE.WHEAT)) >= 1 && cards.get(Tile.RESOURCE_TYPE.SHEEP) >= 1;
+    }
+    public boolean canBuildCity(){
+        return cards.get(Tile.RESOURCE_TYPE.ROCK) >= 3 && cards.get(Tile.RESOURCE_TYPE.WHEAT) >= 2;
+    }
+    public boolean canBuildDevCard(){
+        return cards.get(Tile.RESOURCE_TYPE.ROCK) >= 1 && cards.get(Tile.RESOURCE_TYPE.WHEAT) >= 1
+                && cards.get(Tile.RESOURCE_TYPE.SHEEP) >= 1;
+    }
+
 
 }
