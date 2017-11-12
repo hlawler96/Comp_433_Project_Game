@@ -16,6 +16,7 @@ public class Player {
     boolean hasLongestRoad, hasLargestArmy;
     HashMap<Tile.RESOURCE_TYPE, Integer> cards;
     int color;
+    Trade trade;
 
     public Player(int playerNum){
         id = playerNum;
@@ -26,11 +27,11 @@ public class Player {
         hasLongestRoad = false;
         hasLargestArmy = false;
         cards = new HashMap<Tile.RESOURCE_TYPE,Integer>();
-        cards.put(Tile.RESOURCE_TYPE.BRICK, 0);
-        cards.put(Tile.RESOURCE_TYPE.WOOD, 0);
-        cards.put(Tile.RESOURCE_TYPE.ROCK, 0);
-        cards.put(Tile.RESOURCE_TYPE.WHEAT, 0);
-        cards.put(Tile.RESOURCE_TYPE.SHEEP, 0);
+        cards.put(Tile.RESOURCE_TYPE.BRICK, 3);
+        cards.put(Tile.RESOURCE_TYPE.WOOD, 3);
+        cards.put(Tile.RESOURCE_TYPE.ROCK, 3);
+        cards.put(Tile.RESOURCE_TYPE.WHEAT, 3);
+        cards.put(Tile.RESOURCE_TYPE.SHEEP, 3);
         color = Color.YELLOW;
         if(id == 2)color = Color.BLUE;
         if(id == 3)color = Color.RED;
@@ -38,7 +39,8 @@ public class Player {
         developmentCards = 0;
         largestArmy = 0;
         longestRoad = 0;
-        numResourceCards = 0;
+        numResourceCards = 15;
+        trade = null;
     }
 
     public void addResource(Tile.RESOURCE_TYPE type){
@@ -88,6 +90,11 @@ public class Player {
         largestArmy++;
     }
 
+    public void countCards(){
+        numResourceCards = cards.get(Tile.RESOURCE_TYPE.WHEAT) + cards.get(Tile.RESOURCE_TYPE.ROCK) + cards.get(Tile.RESOURCE_TYPE.SHEEP) +
+                    cards.get(Tile.RESOURCE_TYPE.WOOD) + cards.get(Tile.RESOURCE_TYPE.BRICK);
+    }
+
     public boolean canBuildRoad(){
         return cards.get(Tile.RESOURCE_TYPE.WOOD) >= 1 && cards.get(Tile.RESOURCE_TYPE.BRICK) >= 1;
     }
@@ -101,6 +108,18 @@ public class Player {
     public boolean canBuildDevCard(){
         return cards.get(Tile.RESOURCE_TYPE.ROCK) >= 1 && cards.get(Tile.RESOURCE_TYPE.WHEAT) >= 1
                 && cards.get(Tile.RESOURCE_TYPE.SHEEP) >= 1;
+    }
+
+    public boolean hasEnoughResources(Trade t){
+        if(t.tradeBrick <= cards.get(Tile.RESOURCE_TYPE.BRICK) &&
+                t.tradeRock <= cards.get(Tile.RESOURCE_TYPE.ROCK) &&
+                t.tradeWood <= cards.get(Tile.RESOURCE_TYPE.WOOD) &&
+                t.tradeSheep <= cards.get(Tile.RESOURCE_TYPE.SHEEP) &&
+                t.tradeWheat <= cards.get(Tile.RESOURCE_TYPE.WHEAT)){
+            return true;
+        }else {
+            return false;
+        }
     }
 
 

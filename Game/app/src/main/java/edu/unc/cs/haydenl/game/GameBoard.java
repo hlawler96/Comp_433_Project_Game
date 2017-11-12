@@ -169,7 +169,6 @@ public class GameBoard {
 
         for(int i = 0; i < iter*2; i+=2){
             Tile t = getTileForBoard();
-            double length = Math.sqrt(Math.pow(dx,2) + Math.pow(dy,2));
             t.storeCoordinates(startX + i*dx,startY); //cos(30 deg)
             t.storeCoordinates(startX + dx + i*dx, startY + dy);
             t.storeCoordinates(startX + dx + i*dx, startY + dy + sideLength);
