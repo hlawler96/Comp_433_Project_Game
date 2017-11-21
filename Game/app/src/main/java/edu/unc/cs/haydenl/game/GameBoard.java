@@ -1,6 +1,7 @@
 package edu.unc.cs.haydenl.game;
 
 import android.graphics.Color;
+import android.service.quicksettings.TileService;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -23,16 +24,23 @@ public class GameBoard {
     public GameBoard(){
         tiles = new Tile[19];
         players  = new Player[4];
-        for(int i = 0; i < tiles.length; i++ ){
-            tiles[i] = assignType();
-        }
-        fillNumbers();
-        counter = 0;
         for(int i = 1; i <= players.length; i++){
             players[i-1] = new Player(i);
         }
-        fillPorts();
         gameLogic = new GameLogic(this);
+        for(int i = 0; i < tiles.length; i++ ){
+            tiles[i] = assignType();
+            if(tiles[i].type == Tile.RESOURCE_TYPE.DESERT) {
+                tiles[i].robbed = true;
+                gameLogic.prevRobbed = tiles[i];
+            }
+
+        }
+        fillNumbers();
+        counter = 0;
+
+        fillPorts();
+
 
     }
 
@@ -176,6 +184,24 @@ public class GameBoard {
             t.storeCoordinates(startX - dx + i*dx, startY + dy + sideLength);
             t.storeCoordinates(startX - dx + i*dx, startY + dy);
         }
+
+    }
+
+    public void giveOutResources(int roll){
+        for(Tile t: tiles){
+            if(t.number == roll && !t.robbed){
+               for(Spot s: t.spots){
+                   Log.v("DEBUG_TAG" , "Spot owned by Player " + s._player);
+                   if(s._player != 0){
+                       players[s._player - 1].addResource(t.type);
+                       if(s._city){
+                           players[s._player - 1].addResource(t.type);
+                       }
+                   }
+               }
+            }
+        }
+
 
     }
 

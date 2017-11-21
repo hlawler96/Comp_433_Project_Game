@@ -1,6 +1,7 @@
 package edu.unc.cs.haydenl.game;
 
 import android.graphics.Color;
+import android.util.Log;
 
 /**
  * Created by hayden on 10/9/17.
@@ -12,16 +13,18 @@ public class Tile {
     public Spot[] spots;
     public RESOURCE_TYPE type;
     public int color, counter, number;
+    public boolean robbed;
 
     public Tile(RESOURCE_TYPE t) {
         spots = new Spot[6];
         type = t;
         for (int i = 0; i < spots.length; i++) {
-            spots[i] = new Spot();
+            spots[i] = new Spot(t);
         }
         color = typeToColor(type);
         counter = 0;
         number = 0;
+        robbed = false;
     }
 
     public boolean canSettle(int i) {
@@ -82,18 +85,34 @@ public class Tile {
         }
         return color;
     }
+
+    public boolean inTile(float x, float y){
+        int slope = (spots[0].y - spots[5].y) / (spots[0].x - spots[5].x);
+        if(x > spots[5].x && x< spots[2].x && y > spots[0].y && y <  spots[3].y
+                && y > slope * x + spots[0].y - slope*spots[0].x
+                && y < slope * x + spots[3].y - slope*spots[3].x
+                && y > -1*slope*x +spots[0].y + slope*spots[0].x
+                && y < -1*slope*x + spots[4].y + slope*spots[4].x   ) {
+
+            return true;
+        }else{
+            return false;
+        }
+    }
 }
 
 class Spot {
 
     int _player, x, y;
     boolean _city;
+    Tile.RESOURCE_TYPE type;
 
-    public Spot(){
+    public Spot(Tile.RESOURCE_TYPE t){
         _player = 0;
         _city = false;
         x = 0;
         y = 0;
+        type = t;
     }
 
     public void settle(int player){

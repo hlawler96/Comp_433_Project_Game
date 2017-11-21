@@ -10,25 +10,23 @@ import java.util.List;
 public class GameLogic {
 
     public GameBoard game;
-    public enum GAME_STATE{STEADY, MAIN_MENU, MENU_BUILD, MENU_TRADE_PLAYERS,MENU_TRADE_CHEST, SETTINGS, ARE_YOU_SURE, TRADE_PROPOSE, TRADE_OVER}
+    public enum GAME_STATE{STEADY, MAIN_MENU, MENU_BUILD, MENU_TRADE_PLAYERS,MENU_TRADE_CHEST, SETTINGS, ARE_YOU_SURE, TRADE_PROPOSE, TRADE_OVER, ROBBING, MOVE_ROBBER, STEAL_FROM_PLAYER, GAME_START}
     public GAME_STATE state;
-    public Player currentPlayer, playerToTradeWith;
+    public Player currentPlayer, playerToTradeWith, playerToStealFrom;
     public String message;
+    Tile prevRobbed;
+    public boolean builtSettlementNeedRoad;
 
-    ArrayList<Player> playersInTrade;
-    public int tradeCounter;
-
-
-
+    ArrayList<Player> playersInTrade, playersToRob;
+    public int tradeCounter, robCounter;
 
     public GameLogic(GameBoard g){
         game = g;
-        state = GAME_STATE.STEADY;
+        state = GAME_STATE.GAME_START;
         currentPlayer = game.players[0];
         message = "Place a settlement Player " + currentPlayer.id;
+        builtSettlementNeedRoad = false;
     }
-
-
 
     public List<Player> tradePropose(){
         playersInTrade =  new ArrayList<>();
@@ -90,6 +88,7 @@ public class GameLogic {
             }
 
     }
+
     public void trade(Player one, Player two){
         one.cards.put(Tile.RESOURCE_TYPE.WHEAT, one.cards.get(Tile.RESOURCE_TYPE.WHEAT) + one.trade.tradeWheat);
         one.cards.put(Tile.RESOURCE_TYPE.ROCK, one.cards.get(Tile.RESOURCE_TYPE.ROCK) + one.trade.tradeRock);
@@ -103,9 +102,74 @@ public class GameLogic {
         two.cards.put(Tile.RESOURCE_TYPE.WOOD, two.cards.get(Tile.RESOURCE_TYPE.WOOD) + two.trade.tradeWood);
     }
 
+    public void robbery(){
+        playersToRob = new ArrayList<>();
+        for(Player p: game.players){
+            if(p.numResourceCards > 7){
+               playersToRob.add(p);
+            }
+        }
+        if(playersToRob.size() > 0){
+            state = GAME_STATE.ROBBING;
+            robCounter = 0;
+        }else{
+            state = GAME_STATE.MOVE_ROBBER;
+            message = "Player " + currentPlayer.id + " move the Robber";
+        }
+    }
 
+    public void steal(){
+        if(playerToStealFrom.numResourceCards > 0) {
+            int cardToSteal = (int) (Math.random() * playerToStealFrom.numResourceCards + 1);
 
+            Tile.RESOURCE_TYPE typeToSteal = Tile.RESOURCE_TYPE.BRICK;
+            if (cardToSteal <= playerToStealFrom.cards.get(typeToSteal)) {
+                    currentPlayer.cards.put(typeToSteal, currentPlayer.cards.get(typeToSteal) + 1);
+                    playerToStealFrom.cards.put(typeToSteal, playerToStealFrom.cards.get(typeToSteal) - 1);
+            }else {
+                cardToSteal -= playerToStealFrom.cards.get(typeToSteal);
+            }
 
+            typeToSteal = Tile.RESOURCE_TYPE.SHEEP;
+            if (cardToSteal <= playerToStealFrom.cards.get(typeToSteal)) {
+                currentPlayer.cards.put(typeToSteal, currentPlayer.cards.get(typeToSteal) + 1);
+                playerToStealFrom.cards.put(typeToSteal, playerToStealFrom.cards.get(typeToSteal) - 1);
+            }else {
+                cardToSteal -= playerToStealFrom.cards.get(typeToSteal);
+            }
+
+            typeToSteal = Tile.RESOURCE_TYPE.WHEAT;
+            if (cardToSteal <= playerToStealFrom.cards.get(typeToSteal)) {
+                currentPlayer.cards.put(typeToSteal, currentPlayer.cards.get(typeToSteal) + 1);
+                playerToStealFrom.cards.put(typeToSteal, playerToStealFrom.cards.get(typeToSteal) - 1);
+            }else {
+                cardToSteal -= playerToStealFrom.cards.get(typeToSteal);
+            }
+
+            typeToSteal = Tile.RESOURCE_TYPE.WOOD;
+            if (cardToSteal <= playerToStealFrom.cards.get(typeToSteal)) {
+                currentPlayer.cards.put(typeToSteal, currentPlayer.cards.get(typeToSteal) + 1);
+                playerToStealFrom.cards.put(typeToSteal, playerToStealFrom.cards.get(typeToSteal) - 1);
+            }else {
+                typeToSteal = Tile.RESOURCE_TYPE.ROCK;
+                currentPlayer.cards.put(typeToSteal, currentPlayer.cards.get(typeToSteal) + 1);
+                playerToStealFrom.cards.put(typeToSteal, playerToStealFrom.cards.get(typeToSteal) - 1);
+            }
+
+        }
+        state = GAME_STATE.STEADY;
+        message = "Its your turn Player " + currentPlayer.id;
+        playerToStealFrom = null;
+    }
+
+    public boolean count3sec(long initTime){
+       long elapsedTime = System.currentTimeMillis()- initTime;
+        if(elapsedTime / 1000.0 > 3){
+            return true;
+        }else {
+            return false;
+        }
+    }
 
 }
 

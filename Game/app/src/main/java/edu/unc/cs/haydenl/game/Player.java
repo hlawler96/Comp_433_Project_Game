@@ -17,6 +17,7 @@ public class Player {
     HashMap<Tile.RESOURCE_TYPE, Integer> cards;
     int color;
     Trade trade;
+    Dice roll;
 
     public Player(int playerNum){
         id = playerNum;
@@ -27,11 +28,11 @@ public class Player {
         hasLongestRoad = false;
         hasLargestArmy = false;
         cards = new HashMap<Tile.RESOURCE_TYPE,Integer>();
-        cards.put(Tile.RESOURCE_TYPE.BRICK, 3);
-        cards.put(Tile.RESOURCE_TYPE.WOOD, 3);
-        cards.put(Tile.RESOURCE_TYPE.ROCK, 3);
-        cards.put(Tile.RESOURCE_TYPE.WHEAT, 3);
-        cards.put(Tile.RESOURCE_TYPE.SHEEP, 3);
+        cards.put(Tile.RESOURCE_TYPE.BRICK, 0);
+        cards.put(Tile.RESOURCE_TYPE.WOOD, 0);
+        cards.put(Tile.RESOURCE_TYPE.ROCK, 0);
+        cards.put(Tile.RESOURCE_TYPE.WHEAT, 0);
+        cards.put(Tile.RESOURCE_TYPE.SHEEP, 0);
         color = Color.YELLOW;
         if(id == 2)color = Color.BLUE;
         if(id == 3)color = Color.RED;
@@ -39,13 +40,16 @@ public class Player {
         developmentCards = 0;
         largestArmy = 0;
         longestRoad = 0;
-        numResourceCards = 15;
+        numResourceCards = 0;
         trade = null;
+        roll = new Dice(this);
     }
 
     public void addResource(Tile.RESOURCE_TYPE type){
-        cards.put(type, cards.get(type) + 1);
-        numResourceCards++;
+        if(type != Tile.RESOURCE_TYPE.DESERT) {
+            cards.put(type, cards.get(type) + 1);
+            numResourceCards++;
+        }
     }
 
     public void useResource(Tile.RESOURCE_TYPE type) {
@@ -98,13 +102,16 @@ public class Player {
     public boolean canBuildRoad(){
         return cards.get(Tile.RESOURCE_TYPE.WOOD) >= 1 && cards.get(Tile.RESOURCE_TYPE.BRICK) >= 1;
     }
+
     public boolean canBuildSettlement(){
         return cards.get(Tile.RESOURCE_TYPE.BRICK) >= 1&& cards.get(Tile.RESOURCE_TYPE.WOOD) >= 1
                 && cards.get((Tile.RESOURCE_TYPE.WHEAT)) >= 1 && cards.get(Tile.RESOURCE_TYPE.SHEEP) >= 1;
     }
+
     public boolean canBuildCity(){
         return cards.get(Tile.RESOURCE_TYPE.ROCK) >= 3 && cards.get(Tile.RESOURCE_TYPE.WHEAT) >= 2;
     }
+
     public boolean canBuildDevCard(){
         return cards.get(Tile.RESOURCE_TYPE.ROCK) >= 1 && cards.get(Tile.RESOURCE_TYPE.WHEAT) >= 1
                 && cards.get(Tile.RESOURCE_TYPE.SHEEP) >= 1;
@@ -120,6 +127,10 @@ public class Player {
         }else {
             return false;
         }
+    }
+
+    public void rollDice(){
+        roll = new Dice(this);
     }
 
 

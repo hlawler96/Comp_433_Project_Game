@@ -1,5 +1,7 @@
 package edu.unc.cs.haydenl.game;
 
+import android.app.Activity;
+import android.app.Notification;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Canvas;
@@ -23,17 +25,15 @@ import java.util.List;
  * TODO:
  *
  * Hayden
- * - Add button in menu for ending turn
- * - Add dice rolls
- * - Add turn based logic
  * - Add Development Cards and Button to use them
+ * - Beginning of game logic
+ * - draw cities and roads?
  *
  * Mason
  * - Get images for tiles
  * - Get images for Ports
  * - Get images for settlements/cities
  * - Add settings menu before game starts
- * - Add settings menu for in game
  * - Make home screen look better
  * - Add music
  * - Change color schemes to be more readable
@@ -47,6 +47,7 @@ public class GameView extends View {
     GameBoard game;
     boolean setup;
     Context context;
+    long time;
 
     public GameView(Context context) {
         super(context);
@@ -73,6 +74,7 @@ public class GameView extends View {
         setup = false;
         settlements = new ArrayList<Spot>();
         context = c;
+        time = 0;
 
         this.setOnTouchListener(new OnTouchListener(){
             @Override
@@ -155,6 +157,14 @@ public class GameView extends View {
 
         }else if (game.gameLogic.state == GameLogic.GAME_STATE.TRADE_OVER){
             onTouchTradeEnded(x,y);
+        }else if( game.gameLogic.state == GameLogic.GAME_STATE.ROBBING){
+            onTouchRobbery(x,y);
+        }else if( game.gameLogic.state == GameLogic.GAME_STATE.MOVE_ROBBER){
+            onTouchMoveRobber(x,y);
+        }else if( game.gameLogic.state == GameLogic.GAME_STATE.STEAL_FROM_PLAYER){
+            onTouchStealFromPlayer(x,y);
+        }else if( game.gameLogic.state == GameLogic.GAME_STATE.GAME_START){
+            onTouchGameStart(x,y);
         }
         this.invalidate();
 
@@ -194,30 +204,44 @@ public class GameView extends View {
             //Draws circles for numbers if they arent the desert
             int centerX = t.spots[0].x;
             int centerY = t.spots[1].y + 3 * (t.spots[2].y - t.spots[1].y) / 4;
-            if(t.type!= Tile.RESOURCE_TYPE.DESERT){
+            if(t.type!= Tile.RESOURCE_TYPE.DESERT ){
                 p.setColor(Color.WHITE);
                 p.setStyle(Paint.Style.FILL_AND_STROKE);
                 c.drawCircle(centerX, centerY - 20, sideLength / 2, p);
             }
+
             //draws numbers associated with tiles
             p.setColor(Color.BLACK);
             if(t.number == 6 || t.number == 8) p.setColor(Color.RED);
             p.setTextAlign(Paint.Align.CENTER);
             p.setTextSize(64);
             if(t.number != 0)c.drawText("" + t.number, centerX, centerY, p);
+
+            if(t.robbed == true) {
+                p.setColor(Color.BLACK);
+                p.setStyle(Paint.Style.FILL_AND_STROKE);
+                c.drawCircle(centerX, centerY - 20, sideLength / 3, p);
+            }
         }
 
 
     }
 
     private void drawSettlements(Canvas c, Paint p){
-        p.setColor(Color.BLACK);
         p.setStyle(Paint.Style.FILL_AND_STROKE);
+        Paint outline = new Paint();
+        outline.setColor(Color.BLACK);
+        outline.setStyle(Paint.Style.STROKE);
+        outline.setStrokeWidth(3);
+        p.setStrokeWidth(3);
 
         for(Tile t: game.tiles) {
             for (Spot s : t.spots) {
                 if(s._player > 0){
+                    p.setColor(game.players[s._player - 1].color);
                     c.drawCircle(s.x,s.y,10, p);
+                    c.drawCircle(s.x,s.y,10, outline);
+
                 }
             }
         }
@@ -333,25 +357,34 @@ public class GameView extends View {
         circlePaint.setStyle(Paint.Style.FILL_AND_STROKE);
         circlePaint.setTextSize(64);
         circlePaint.setTextAlign(Paint.Align.CENTER);
+        if(game.gameLogic.state != GameLogic.GAME_STATE.GAME_START) {
+            game.gameLogic.currentPlayer.roll.draw(c, width, height);
+        }
 
         if(game.gameLogic.state == GameLogic.GAME_STATE.STEADY){
             c.drawCircle(width - height/6 - 10, height/2, height / 12, circlePaint);
             circlePaint.setColor(Color.WHITE);
             c.drawText("B", width-height/6 - 10, height/2 + 20 , circlePaint);
 
+
         }else if(game.gameLogic.state == GameLogic.GAME_STATE.MAIN_MENU){
 
-            c.drawRect(width/8, height/4, 3*width/8, 3*height/4,fullBoxPaint);
-            c.drawRect(width/8, height/4, 3*width/8, 3*height/4,boxOutline);
-            c.drawText("BUILD", width/4, height/2,textPaint);
+            c.drawRect(width/8, height/4, width/2, height/2,fullBoxPaint);
+            c.drawRect(width/8, height/4, width/2, height/2,boxOutline);
+            c.drawText("BUILD", 5*width/16, 3*height/8,textPaint);
 
-            c.drawRect(3*width/8, height/4, 5*width/8, 3*height/4,fullBoxPaint);
-            c.drawRect(3*width/8, height/4, 5*width/8, 3*height/4,boxOutline);
-            c.drawText("TRADE", width/2, height/2,textPaint);
+            c.drawRect(width/8, height/2, 4*width/8, 3*height/4,fullBoxPaint);
+            c.drawRect(width/8, height/2, 4*width/8, 3*height/4,boxOutline);
+            c.drawText("TRADE", 5*width/16, 5*height/8,textPaint);
 
-            c.drawRect(5*width/8, height/4, 7*width/8, 3*height/4,fullBoxPaint);
-            c.drawRect(5*width/8, height/4, 7*width/8, 3*height/4,boxOutline);
-            c.drawText("QUIT", 3*width/4, height/2,textPaint);
+            c.drawRect(width/2, height/4, 7*width/8, height/2,fullBoxPaint);
+            c.drawRect(width/2, height/4, 7*width/8, height/2,boxOutline);
+            c.drawText("END TURN", 11*width/16, 3*height/8,textPaint);
+
+            c.drawRect(width/2, height/2, 7*width/8, 3*height/4,fullBoxPaint);
+            c.drawRect(width/2, height/2, 7*width/8, 3*height/4,boxOutline);
+            c.drawText("QUIT", 11*width/16, 5*height/8,textPaint);
+
         }else if (game.gameLogic.state == GameLogic.GAME_STATE.MENU_BUILD){
 
             drawMenuBuild(fullBoxPaint, boxOutline, textPaint, c);
@@ -382,6 +415,12 @@ public class GameView extends View {
         }else if(game.gameLogic.state == GameLogic.GAME_STATE.TRADE_OVER){
 
             drawTradeEnded(fullBoxPaint, boxOutline, textPaint, c);
+        }else if(game.gameLogic.state == GameLogic.GAME_STATE.ROBBING){
+            drawRobbery(fullBoxPaint, boxOutline, textPaint, c);
+        }else if (game.gameLogic.state == GameLogic.GAME_STATE.MOVE_ROBBER){
+            drawMoveRobber(fullBoxPaint, boxOutline, textPaint, c);
+        }else if( game.gameLogic.state == GameLogic.GAME_STATE.STEAL_FROM_PLAYER){
+            drawStealFromPlayer(textPaint,c);
         }
 
     }
@@ -454,36 +493,66 @@ public class GameView extends View {
     }
 
     public void onTouchSteady(float x, float y){
-        double min = 250;
-        Spot minSpot = null;
-        for (Tile t : game.tiles) {
-            for (Spot s : t.spots) {
-                double distance = Math.sqrt(Math.pow(x - s.x, 2) + Math.pow(y - s.y, 2));
-                if (distance < min) {
-                    minSpot = s;
-                    min = distance;
-                }
-            }
-        }
-        //check for button click
-        double distance = Math.sqrt(Math.pow(x - (width-80),2) + Math.pow(y - height/2, 2));
-        if(distance < min){
+
+        if(Math.sqrt(Math.pow(x - (width - height / 6 - 10), 2) + Math.pow(y - height / 2, 2)) <= height / 12){
             game.gameLogic.state = GameLogic.GAME_STATE.MAIN_MENU;
-        }else if (min < sideLength * 1.5) {
-            minSpot._player = game.gameLogic.currentPlayer.id;
         }
     }
 
     public void onTouchMainMenu(float x, float y){
+
         if(x < width/8 || x > 7*width/8 || y < height/4 || y > 3*height/4){
             game.gameLogic.state = GameLogic.GAME_STATE.STEADY;
-        }else if(x < 3*width/8){
+        }else if(x > width/8 && x < width / 2 && y > height / 4 && y < height/2){
             game.gameLogic.state = GameLogic.GAME_STATE.MENU_BUILD;
-        }else if(x < 5*width/8){
+        }else if(x > width/8 && x < width / 2 && y > height / 2 && y < 3*height/4){
             game.gameLogic.state = GameLogic.GAME_STATE.MENU_TRADE_PLAYERS;
             game.gameLogic.currentPlayer.trade = new Trade();
-        }else{
+        }else if(x > width/2 && x < 7 * width / 8 && y > height / 2 && y < 3*height/4){
             game.gameLogic.state = GameLogic.GAME_STATE.ARE_YOU_SURE;
+        }else{
+            int index = game.gameLogic.currentPlayer.id;
+            if(index == 4){
+                index = 0;
+            }
+            game.gameLogic.currentPlayer = game.players[index];
+            game.gameLogic.state = GameLogic.GAME_STATE.STEADY;
+            game.gameLogic.currentPlayer.rollDice();
+            int roll = game.gameLogic.currentPlayer.roll.one + game.gameLogic.currentPlayer.roll.two;
+            if(roll != 7 ) {
+                game.giveOutResources(roll);
+            }else{
+                time = System.currentTimeMillis();
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        while(true) {
+                            try {
+                                Thread.sleep(1000);
+                                ((Activity) context).runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        redraw();
+                                    }
+                                });
+                                if(game.gameLogic.count3sec(time)){
+                                    return ;
+                                }
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                }).start();
+
+
+                game.gameLogic.robbery();
+                if(game.gameLogic.state == GameLogic.GAME_STATE.ROBBING){
+                    game.gameLogic.playersToRob.get(game.gameLogic.robCounter).trade = new Trade();
+                }
+
+
+            }
         }
     }
 
@@ -1025,6 +1094,314 @@ public class GameView extends View {
                 p.trade = new Trade();
             }
             game.gameLogic.playerToTradeWith = null;
+        }
+    }
+
+    public void drawRobbery(Paint fullBoxPaint, Paint boxOutline, Paint textPaint, Canvas c){
+
+        if(game.gameLogic.count3sec(time)) {
+            Player p = game.gameLogic.playersToRob.get(game.gameLogic.robCounter);
+            Player temp = game.gameLogic.currentPlayer;
+            game.gameLogic.currentPlayer = p;
+            drawCurrentPlayerResources(c, new Paint());
+            drawPlayerBoxes(c, new Paint());
+            game.gameLogic.message = "Player " + p.id + " must get rid of " + p.numResourceCards / 2 + " cards";
+            game.gameLogic.currentPlayer = temp;
+
+            c.drawRect(width / 8, height / 4, 5 * width / 8, 3 * height / 4, fullBoxPaint);
+            c.drawRect(width / 8, height / 4, 5 * width / 8, 3 * height / 4, boxOutline);
+
+            Paint fill = new Paint();
+            fill.setStyle(Paint.Style.FILL_AND_STROKE);
+
+            fill.setColor(game.tiles[0].typeToColor(Tile.RESOURCE_TYPE.WHEAT));
+            c.drawCircle(width / 8 + width / 12, height / 2, height / 20, fill);
+            c.drawCircle(width / 8 + width / 12, height / 2, height / 20, boxOutline);
+            c.drawText("" + p.trade.tradeWheat, width / 8 + width / 12, height / 2 + 20, textPaint);
+            c.drawRect(width / 8 + 1 * width / 12 - height / 20, 3 * height / 8 - height / 20, width / 8 + 1 * width / 12 + height / 20, 3 * height / 8 + height / 20, fill);
+            c.drawRect(width / 8 + 1 * width / 12 - height / 20, 5 * height / 8 - height / 20, width / 8 + 1 * width / 12 + height / 20, 5 * height / 8 + height / 20, fill);
+            c.drawRect(width / 8 + 1 * width / 12 - height / 20, 3 * height / 8 - height / 20, width / 8 + 1 * width / 12 + height / 20, 3 * height / 8 + height / 20, boxOutline);
+            c.drawRect(width / 8 + 1 * width / 12 - height / 20, 5 * height / 8 - height / 20, width / 8 + 1 * width / 12 + height / 20, 5 * height / 8 + height / 20, boxOutline);
+            c.drawText("+1", width / 8 + 1 * width / 12, 3 * height / 8 + 20, textPaint);
+            c.drawText("-1", width / 8 + 1 * width / 12, 5 * height / 8 + 20, textPaint);
+
+            fill.setColor(game.tiles[0].typeToColor(Tile.RESOURCE_TYPE.WOOD));
+            c.drawCircle(width / 8 + 2 * width / 12, height / 2, height / 20, fill);
+            c.drawCircle(width / 8 + 2 * width / 12, height / 2, height / 20, boxOutline);
+            c.drawText("" + p.trade.tradeWood, width / 8 + 2 * width / 12, height / 2 + 20, textPaint);
+            c.drawRect(width / 8 + 2 * width / 12 - height / 20, 3 * height / 8 - height / 20, width / 8 + 2 * width / 12 + height / 20, 3 * height / 8 + height / 20, fill);
+            c.drawRect(width / 8 + 2 * width / 12 - height / 20, 5 * height / 8 - height / 20, width / 8 + 2 * width / 12 + height / 20, 5 * height / 8 + height / 20, fill);
+            c.drawRect(width / 8 + 2 * width / 12 - height / 20, 3 * height / 8 - height / 20, width / 8 + 2 * width / 12 + height / 20, 3 * height / 8 + height / 20, boxOutline);
+            c.drawRect(width / 8 + 2 * width / 12 - height / 20, 5 * height / 8 - height / 20, width / 8 + 2 * width / 12 + height / 20, 5 * height / 8 + height / 20, boxOutline);
+            c.drawText("+1", width / 8 + 2 * width / 12, 3 * height / 8 + 20, textPaint);
+            c.drawText("-1", width / 8 + 2 * width / 12, 5 * height / 8 + 20, textPaint);
+
+            fill.setColor(game.tiles[0].typeToColor(Tile.RESOURCE_TYPE.ROCK));
+            c.drawCircle(width / 8 + 3 * width / 12, height / 2, height / 20, fill);
+            c.drawCircle(width / 8 + 3 * width / 12, height / 2, height / 20, boxOutline);
+            c.drawText("" + p.trade.tradeRock, width / 8 + 3 * width / 12, height / 2 + 20, textPaint);
+            c.drawRect(width / 8 + 3 * width / 12 - height / 20, 3 * height / 8 - height / 20, width / 8 + 3 * width / 12 + height / 20, 3 * height / 8 + height / 20, fill);
+            c.drawRect(width / 8 + 3 * width / 12 - height / 20, 5 * height / 8 - height / 20, width / 8 + 3 * width / 12 + height / 20, 5 * height / 8 + height / 20, fill);
+            c.drawRect(width / 8 + 3 * width / 12 - height / 20, 3 * height / 8 - height / 20, width / 8 + 3 * width / 12 + height / 20, 3 * height / 8 + height / 20, boxOutline);
+            c.drawRect(width / 8 + 3 * width / 12 - height / 20, 5 * height / 8 - height / 20, width / 8 + 3 * width / 12 + height / 20, 5 * height / 8 + height / 20, boxOutline);
+            c.drawText("+1", width / 8 + 3 * width / 12, 3 * height / 8 + 20, textPaint);
+            c.drawText("-1", width / 8 + 3 * width / 12, 5 * height / 8 + 20, textPaint);
+
+            fill.setColor(game.tiles[0].typeToColor(Tile.RESOURCE_TYPE.BRICK));
+            c.drawCircle(width / 8 + 4 * width / 12, height / 2, height / 20, fill);
+            c.drawCircle(width / 8 + 4 * width / 12, height / 2, height / 20, boxOutline);
+            c.drawText("" + p.trade.tradeBrick, width / 8 + 4 * width / 12, height / 2 + 20, textPaint);
+            c.drawRect(width / 8 + 4 * width / 12 - height / 20, 3 * height / 8 - height / 20, width / 8 + 4 * width / 12 + height / 20, 3 * height / 8 + height / 20, fill);
+            c.drawRect(width / 8 + 4 * width / 12 - height / 20, 5 * height / 8 - height / 20, width / 8 + 4 * width / 12 + height / 20, 5 * height / 8 + height / 20, fill);
+            c.drawRect(width / 8 + 4 * width / 12 - height / 20, 3 * height / 8 - height / 20, width / 8 + 4 * width / 12 + height / 20, 3 * height / 8 + height / 20, boxOutline);
+            c.drawRect(width / 8 + 4 * width / 12 - height / 20, 5 * height / 8 - height / 20, width / 8 + 4 * width / 12 + height / 20, 5 * height / 8 + height / 20, boxOutline);
+            c.drawText("+1", width / 8 + 4 * width / 12, 3 * height / 8 + 20, textPaint);
+            c.drawText("-1", width / 8 + 4 * width / 12, 5 * height / 8 + 20, textPaint);
+
+            fill.setColor(game.tiles[0].typeToColor(Tile.RESOURCE_TYPE.SHEEP));
+            c.drawCircle(width / 8 + 5 * width / 12, height / 2, height / 20, fill);
+            c.drawCircle(width / 8 + 5 * width / 12, height / 2, height / 20, boxOutline);
+            c.drawText("" + p.trade.tradeSheep, width / 8 + 5 * width / 12, height / 2 + 20, textPaint);
+            c.drawRect(width / 8 + 5 * width / 12 - height / 20, 3 * height / 8 - height / 20, width / 8 + 5 * width / 12 + height / 20, 3 * height / 8 + height / 20, fill);
+            c.drawRect(width / 8 + 5 * width / 12 - height / 20, 5 * height / 8 - height / 20, width / 8 + 5 * width / 12 + height / 20, 5 * height / 8 + height / 20, fill);
+            c.drawRect(width / 8 + 5 * width / 12 - height / 20, 3 * height / 8 - height / 20, width / 8 + 5 * width / 12 + height / 20, 3 * height / 8 + height / 20, boxOutline);
+            c.drawRect(width / 8 + 5 * width / 12 - height / 20, 5 * height / 8 - height / 20, width / 8 + 5 * width / 12 + height / 20, 5 * height / 8 + height / 20, boxOutline);
+            c.drawText("+1", width / 8 + 5 * width / 12, 3 * height / 8 + 20, textPaint);
+            c.drawText("-1", width / 8 + 5 * width / 12, 5 * height / 8 + 20, textPaint);
+
+
+            int tempColor = fullBoxPaint.getColor();
+            if (p.trade.tradeRock + p.trade.tradeWheat + p.trade.tradeWood + p.trade.tradeSheep + p.trade.tradeBrick != (-1 * p.numResourceCards / 2)) {
+                fullBoxPaint.setColor(Color.GRAY);
+            }
+            c.drawRect(5 * width / 8, height / 4, 7 * width / 8, 3 * height / 4, fullBoxPaint);
+            c.drawRect(5 * width / 8, height / 4, 7 * width / 8, 3 * height / 4, boxOutline);
+            c.drawText("Accept", 6 * width / 8, height / 2, textPaint);
+            fullBoxPaint.setColor(tempColor);
+        }
+    }
+
+    public void onTouchRobbery(float x, float y){
+        if(game.gameLogic.count3sec(time)) {
+            Player p = game.gameLogic.playersToRob.get(game.gameLogic.robCounter);
+            if (x > 5 * width / 8 && x < 7 * width / 8 && y > height / 4 && y < 3 * height / 4) {
+                if (p.trade.tradeRock + p.trade.tradeWheat + p.trade.tradeWood + p.trade.tradeSheep + p.trade.tradeBrick == (-1 * p.numResourceCards / 2)) {
+                    p.cards.put(Tile.RESOURCE_TYPE.BRICK, p.cards.get(Tile.RESOURCE_TYPE.BRICK) + p.trade.tradeBrick);
+                    p.cards.put(Tile.RESOURCE_TYPE.ROCK, p.cards.get(Tile.RESOURCE_TYPE.ROCK) + p.trade.tradeRock);
+                    p.cards.put(Tile.RESOURCE_TYPE.SHEEP, p.cards.get(Tile.RESOURCE_TYPE.SHEEP) + p.trade.tradeSheep);
+                    p.cards.put(Tile.RESOURCE_TYPE.WOOD, p.cards.get(Tile.RESOURCE_TYPE.WOOD) + p.trade.tradeWood);
+                    p.cards.put(Tile.RESOURCE_TYPE.WHEAT, p.cards.get(Tile.RESOURCE_TYPE.WHEAT) + p.trade.tradeWheat);
+                    p.numResourceCards += p.trade.tradeBrick + p.trade.tradeRock + p.trade.tradeSheep + p.trade.tradeWood + p.trade.tradeWheat;
+
+                    if (game.gameLogic.playersToRob.size() > game.gameLogic.robCounter + 1) {
+                        game.gameLogic.robCounter++;
+                        game.gameLogic.playersToRob.get(game.gameLogic.robCounter).trade = new Trade();
+                    } else {
+                        game.gameLogic.state = GameLogic.GAME_STATE.MOVE_ROBBER;
+                        game.gameLogic.message = "Player " + game.gameLogic.currentPlayer.id + " move the Robber";
+
+
+                    }
+                }
+            } else if (x > width / 8 + 1 * width / 12 - height / 20 && x < width / 8 + 1 * width / 12 + height / 20 && y > 3 * height / 8 - height / 20 && y < 3 * height / 8 + height / 20) {
+                if (p.trade.tradeWheat < 0) p.trade.tradeWheat += 1;
+            } else if (x > width / 8 + 1 * width / 12 - height / 20 && x < width / 8 + 1 * width / 12 + height / 20 && y > 5 * height / 8 - height / 20 && y < 5 * height / 8 + height / 20) {
+                if (p.trade.tradeRock + p.trade.tradeWheat + p.trade.tradeWood + p.trade.tradeSheep + p.trade.tradeBrick != (-1 * p.numResourceCards / 2) &&
+                        p.cards.get(Tile.RESOURCE_TYPE.WHEAT) >= -1 * p.trade.tradeWheat + 1)
+                    p.trade.tradeWheat -= 1;
+            } else if (x > width / 8 + 2 * width / 12 - height / 20 && x < width / 8 + 2 * width / 12 + height / 20 && y > 3 * height / 8 - height / 20 && y < 3 * height / 8 + height / 20) {
+                if (p.trade.tradeWood < 0) p.trade.tradeWood += 1;
+            } else if (x > width / 8 + 2 * width / 12 - height / 20 && x < width / 8 + 2 * width / 12 + height / 20 && y > 5 * height / 8 - height / 20 && y < 5 * height / 8 + height / 20) {
+                if (p.trade.tradeRock + p.trade.tradeWheat + p.trade.tradeWood + p.trade.tradeSheep + p.trade.tradeBrick != (-1 * p.numResourceCards / 2) &&
+                        p.cards.get(Tile.RESOURCE_TYPE.WOOD) >= -1 * p.trade.tradeWood + 1)
+                    p.trade.tradeWood -= 1;
+            } else if (x > width / 8 + 3 * width / 12 - height / 20 && x < width / 8 + 3 * width / 12 + height / 20 && y > 3 * height / 8 - height / 20 && y < 3 * height / 8 + height / 20) {
+                if (p.trade.tradeRock < 0) p.trade.tradeRock += 1;
+            } else if (x > width / 8 + 3 * width / 12 - height / 20 && x < width / 8 + 3 * width / 12 + height / 20 && y > 5 * height / 8 - height / 20 && y < 5 * height / 8 + height / 20) {
+                if (p.trade.tradeRock + p.trade.tradeWheat + p.trade.tradeWood + p.trade.tradeSheep + p.trade.tradeBrick != (-1 * p.numResourceCards / 2) &&
+                        p.cards.get(Tile.RESOURCE_TYPE.WHEAT) >= -1 * p.trade.tradeRock + 1)
+                    p.trade.tradeRock -= 1;
+            } else if (x > width / 8 + 4 * width / 12 - height / 20 && x < width / 8 + 4 * width / 12 + height / 20 && y > 3 * height / 8 - height / 20 && y < 3 * height / 8 + height / 20) {
+                if (p.trade.tradeBrick < 0) p.trade.tradeBrick += 1;
+            } else if (x > width / 8 + 4 * width / 12 - height / 20 && x < width / 8 + 4 * width / 12 + height / 20 && y > 5 * height / 8 - height / 20 && y < 5 * height / 8 + height / 20) {
+                if (p.trade.tradeRock + p.trade.tradeWheat + p.trade.tradeWood + p.trade.tradeSheep + p.trade.tradeBrick != (-1 * p.numResourceCards / 2) &&
+                        p.cards.get(Tile.RESOURCE_TYPE.BRICK) >= -1 * p.trade.tradeBrick + 1)
+                    p.trade.tradeBrick -= 1;
+            } else if (x > width / 8 + 5 * width / 12 - height / 20 && x < width / 8 + 5 * width / 12 + height / 20 && y > 3 * height / 8 - height / 20 && y < 3 * height / 8 + height / 20) {
+                if (p.trade.tradeSheep < 0) p.trade.tradeSheep += 1;
+            } else if (x > width / 8 + 5 * width / 12 - height / 20 && x < width / 8 + 5 * width / 12 + height / 20 && y > 5 * height / 8 - height / 20 && y < 5 * height / 8 + height / 20) {
+                if (p.trade.tradeRock + p.trade.tradeWheat + p.trade.tradeWood + p.trade.tradeSheep + p.trade.tradeBrick != (-1 * p.numResourceCards / 2) &&
+                        p.cards.get(Tile.RESOURCE_TYPE.SHEEP) >= -1 * p.trade.tradeSheep + 1)
+                    p.trade.tradeSheep -= 1;
+            }
+        }
+    }
+
+    public void onTouchMoveRobber(float x, float y){
+        if(game.gameLogic.count3sec(time)) {
+            Tile toRob = null;
+            for (Tile t : game.tiles) {
+                if (t.inTile(x, y)) {
+                    game.gameLogic.message = "Are you sure?";
+                    toRob = t;
+                }
+            }
+            if(toRob != null && toRob != game.gameLogic.prevRobbed){
+                for(Tile t: game.tiles){
+                    if(t != toRob){
+                        t.robbed = false;
+                    }
+                }
+                toRob.robbed = true;
+                game.gameLogic.prevRobbed.robbed = false;
+            }
+
+            if (Math.sqrt(Math.pow(x - (width - height / 6 - 10), 2) + Math.pow(y - height / 2, 2)) <= height / 12 && !game.gameLogic.prevRobbed.robbed) {
+                ArrayList<Player> playersToStealFrom = new ArrayList<>();
+                for(Tile t: game.tiles){
+                    if(t.robbed){
+                        toRob = t;
+                    }
+                }
+                for(Spot s: toRob.spots){
+                    if(s._player != 0){
+                        playersToStealFrom.add(game.players[s._player - 1]);
+                    }
+                }
+                game.gameLogic.state = GameLogic.GAME_STATE.STEADY;
+                game.gameLogic.message = "Its your turn Player " + game.gameLogic.currentPlayer.id;
+
+                if(playersToStealFrom.size() == 1){
+                    game.gameLogic.playerToStealFrom = playersToStealFrom.get(0);
+                    game.gameLogic.steal();
+                }else {
+                    for (Player p : playersToStealFrom) {
+                        if (p.numResourceCards > 0) {
+                            game.gameLogic.state = GameLogic.GAME_STATE.STEAL_FROM_PLAYER;
+                            game.gameLogic.message = "Choose which player to steal from";
+                        }
+                    }
+                }
+                time = 0;
+                for (Player p : game.players) {
+                    p.trade = new Trade();
+                }
+            }
+        }
+
+    }
+
+    public void drawMoveRobber(Paint fullBoxPaint, Paint boxOutline, Paint textPaint, Canvas c){
+        if(game.gameLogic.count3sec(time)) {
+            for (Tile t : game.tiles) {
+                if (t.robbed && t != game.gameLogic.prevRobbed) {
+                    Paint circlePaint = new Paint();
+                    circlePaint.setColor(Color.GREEN);
+                    circlePaint.setStyle(Paint.Style.FILL_AND_STROKE);
+                    c.drawCircle(width - height / 6 - 10, height / 2, height / 12, circlePaint);
+                    c.drawText("✓", width - height / 6 - 10, height / 2 + 20, textPaint);
+                }
+            }
+
+        }
+    }
+
+    public void redraw(){
+        this.invalidate();
+    }
+
+    public void onTouchStealFromPlayer(float x, float y){
+
+
+        if(game.gameLogic.playerToStealFrom != null && Math.sqrt(Math.pow(x - (width - height / 6 - 10), 2) + Math.pow(y - height / 2, 2)) <= height / 12){
+            game.gameLogic.steal();
+
+        }else {
+            for (Tile t : game.tiles) {
+                if (t.robbed) {
+                    Spot minSpot = null;
+                    double minDistance = sideLength;
+                    for (Spot s : t.spots) {
+                        if (Math.sqrt(Math.pow(x - s.x, 2) + Math.pow(y - s.y, 2)) <= minDistance && s._player != 0 && game.players[s._player - 1] != game.gameLogic.currentPlayer) {
+                            minDistance = Math.sqrt(Math.pow(x - s.x, 2) + Math.pow(y - s.y, 2));
+                            minSpot = s;
+                        }
+                    }
+                    if (minSpot != null) {
+                        game.gameLogic.playerToStealFrom = game.players[minSpot._player - 1];
+                        game.gameLogic.message = "Steal from Player " + minSpot._player + "?";
+                    }
+                }
+            }
+
+        }
+    }
+
+    public void drawStealFromPlayer(Paint textPaint, Canvas c){
+        if(game.gameLogic.playerToStealFrom != null){
+            Paint circlePaint = new Paint();
+            circlePaint.setColor(Color.GREEN);
+            circlePaint.setStyle(Paint.Style.FILL_AND_STROKE);
+            c.drawCircle(width - height / 6 - 10, height / 2, height / 12, circlePaint);
+            c.drawText("✓", width - height / 6 - 10, height / 2 + 20, textPaint);
+        }
+    }
+
+    public void onTouchGameStart(float x, float y){
+
+        if(game.gameLogic.builtSettlementNeedRoad){
+            //TODO ROADS
+
+        } else {
+            double min = 250;
+            Spot minSpot = null;
+            for (Tile t : game.tiles) {
+                for (Spot s : t.spots) {
+                    double distance = Math.sqrt(Math.pow(x - s.x, 2) + Math.pow(y - s.y, 2));
+                    if (distance < min) {
+                        minSpot = s;
+                        min = distance;
+                    }
+                }
+            }
+            ArrayList<Spot> spotsToSettle = new ArrayList<>();
+            if (min < sideLength * 1.5) {
+                for (Tile t : game.tiles) {
+                    for (Spot s : t.spots) {
+                        if (Math.sqrt(Math.pow(s.x - minSpot.x, 2) + Math.pow(s.y - minSpot.y, 2)) <= sideLength && s._player != 0) {
+                            game.gameLogic.message = "Can't settle there";
+                            return;
+                        }
+                        if (s.x == minSpot.x && s.y == minSpot.y) {
+                            spotsToSettle.add(s);
+                        }
+                    }
+                }
+
+                for (Spot s : spotsToSettle) {
+                    s._player = game.gameLogic.currentPlayer.id;
+                    if (game.gameLogic.currentPlayer.points == 1) {
+                        game.gameLogic.currentPlayer.addResource(s.type);
+                    }
+                }
+                game.gameLogic.currentPlayer.addSettlement();
+                int counter = game.gameLogic.currentPlayer.id;
+                if (counter == 4) counter = 0;
+                game.gameLogic.currentPlayer = game.players[counter];
+                game.gameLogic.message = "Place a settlement Player " + game.gameLogic.currentPlayer.id;
+                if (game.gameLogic.currentPlayer.points == 2) {
+                    game.gameLogic.state = GameLogic.GAME_STATE.STEADY;
+                    game.gameLogic.message = "Its your turn Player " + game.gameLogic.currentPlayer.id;
+                    game.gameLogic.currentPlayer.rollDice();
+                    int roll = game.gameLogic.currentPlayer.roll.one + game.gameLogic.currentPlayer.roll.two;
+                    if (roll != 7) {
+                        game.giveOutResources(roll);
+                    } else {
+                        game.gameLogic.state = GameLogic.GAME_STATE.MOVE_ROBBER;
+                    }
+                }
+
+            }
         }
     }
 }
