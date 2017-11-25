@@ -26,7 +26,7 @@ import java.util.List;
  *
  * Hayden
  * - USE_DEV_CARD
- * - Double check conditions for whether you can build a road. (If adjacent to settlement OR another road)
+ * - Ask if you want to use knight before a dice roll
  *
  * Mason
  * - Get images for tiles
@@ -1541,21 +1541,38 @@ public class GameView extends View {
                     }
                 }
             }
-            Player p = game.gameLogic.currentPlayer;
-            p.addRoad(r);
-            p.cards.put(Tile.RESOURCE_TYPE.BRICK, p.cards.get(Tile.RESOURCE_TYPE.BRICK)-1);
-            p.cards.put(Tile.RESOURCE_TYPE.WOOD, p.cards.get(Tile.RESOURCE_TYPE.WOOD)-1);
-            game.gameLogic.state = GameLogic.GAME_STATE.STEADY;
-
-            if(game.gameLogic.longestRoad != null){
-                if(game.gameLogic.longestRoad.longestRoad < game.gameLogic.currentPlayer.longestRoad){
-                    game.gameLogic.longestRoad.hasLongestRoad = false;
-                    game.gameLogic.longestRoad.points -= 2;
-                    game.gameLogic.longestRoad = game.gameLogic.currentPlayer;
-                    game.gameLogic.longestRoad.addLongestRoad();
+            boolean canBuildRoad = false;
+            for(Tile t: game.tiles){
+                for(Spot s: t.spots){
+                    if((s.x == minSpotOne.x && s.y == minSpotOne.y && s._player == game.gameLogic.currentPlayer.id) ||
+                            (s.x == minSpotTwo.x && s.y ==minSpotTwo.y &&s._player == game.gameLogic.currentPlayer.id)){
+                        canBuildRoad = true;
+                    }
                 }
-            }else if(p.longestRoad == 5){
-                game.gameLogic.longestRoad = p;
+            }
+
+                for(Road road: game.gameLogic.currentPlayer.roads){
+                    if((road.one.x == r.one.x && road.one.y == r.one.y) || (road.two.x == r.two.x && road.two.y == r.two.y) ){
+                        canBuildRoad = true;
+                    }
+                }
+            if(canBuildRoad) {
+                Player p = game.gameLogic.currentPlayer;
+                p.addRoad(r);
+                p.cards.put(Tile.RESOURCE_TYPE.BRICK, p.cards.get(Tile.RESOURCE_TYPE.BRICK) - 1);
+                p.cards.put(Tile.RESOURCE_TYPE.WOOD, p.cards.get(Tile.RESOURCE_TYPE.WOOD) - 1);
+                game.gameLogic.state = GameLogic.GAME_STATE.STEADY;
+
+                if (game.gameLogic.longestRoad != null) {
+                    if (game.gameLogic.longestRoad.longestRoad < game.gameLogic.currentPlayer.longestRoad) {
+                        game.gameLogic.longestRoad.hasLongestRoad = false;
+                        game.gameLogic.longestRoad.points -= 2;
+                        game.gameLogic.longestRoad = game.gameLogic.currentPlayer;
+                        game.gameLogic.longestRoad.addLongestRoad();
+                    }
+                } else if (p.longestRoad == 5) {
+                    game.gameLogic.longestRoad = p;
+                }
             }
         }
     }
