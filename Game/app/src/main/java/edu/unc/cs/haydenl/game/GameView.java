@@ -25,9 +25,8 @@ import java.util.List;
  * TODO:
  *
  * Hayden
- * - Add Development Cards and Button to use them
- * - Beginning of game logic
- * - draw cities and roads?
+ * - USE_DEV_CARD
+ * - Double check conditions for whether you can build a road. (If adjacent to settlement OR another road)
  *
  * Mason
  * - Get images for tiles
@@ -114,10 +113,10 @@ public class GameView extends View {
         drawPlayerBoxes(c,p);
         drawTiles(c,p);
         drawPorts(c,p);
-        drawSettlements(c,p);
         drawMenu(c);
         drawMessageBar(c,p);
-
+        drawRoads(c, p);
+        drawSettlements(c,p);
     }
 
     public void onTouch(float x, float y){
@@ -129,11 +128,19 @@ public class GameView extends View {
             onTouchMainMenu(x,y);
 
         }else if(game.gameLogic.state == GameLogic.GAME_STATE.MENU_BUILD){
-
-            //TODO
-            Player p = game.gameLogic.currentPlayer;
             if(x < width/8 || x > 7*width/8 || y < height/4 || y > 3*height/4){
                 game.gameLogic.state = GameLogic.GAME_STATE.STEADY;
+            }else if(x > width / 2 && y < height / 2 && game.gameLogic.currentPlayer.canBuildCity()){
+                game.gameLogic.state = GameLogic.GAME_STATE.PLACE_CITY;
+                game.gameLogic.message = "Place a City";
+            }else if(x < width / 2 && y < height / 2 && game.gameLogic.currentPlayer.canBuildSettlement()){
+                game.gameLogic.state = GameLogic.GAME_STATE.PLACE_SETTLEMENT;
+                game.gameLogic.message = "Place a Settlement";
+            }else if(x > width / 2 && y > height / 2 && game.gameLogic.currentPlayer.canBuildRoad()){
+                game.gameLogic.state = GameLogic.GAME_STATE.PLACE_ROAD;
+                game.gameLogic.message = "Place a Road";
+            }else if (game.gameLogic.currentPlayer.canBuildDevCard() && game.gameLogic.devCards.size > 0){
+                game.gameLogic.currentPlayer.addDevCard(game.gameLogic.devCards.getCard());
             }
 
         }else if(game.gameLogic.state == GameLogic.GAME_STATE.MENU_TRADE_PLAYERS){
@@ -165,6 +172,12 @@ public class GameView extends View {
             onTouchStealFromPlayer(x,y);
         }else if( game.gameLogic.state == GameLogic.GAME_STATE.GAME_START){
             onTouchGameStart(x,y);
+        }else if( game.gameLogic.state == GameLogic.GAME_STATE.PLACE_SETTLEMENT){
+            onTouchPlaceSettlement(x,y);
+        }else if( game.gameLogic.state == GameLogic.GAME_STATE.PLACE_CITY){
+            onTouchPlaceCity(x,y);
+        }else if( game.gameLogic.state == GameLogic.GAME_STATE.PLACE_ROAD){
+            onTouchPlaceRoad(x,y);
         }
         this.invalidate();
 
@@ -239,8 +252,13 @@ public class GameView extends View {
             for (Spot s : t.spots) {
                 if(s._player > 0){
                     p.setColor(game.players[s._player - 1].color);
-                    c.drawCircle(s.x,s.y,10, p);
-                    c.drawCircle(s.x,s.y,10, outline);
+                    if(s._city){
+                        c.drawCircle(s.x,s.y,15, p);
+                        c.drawCircle(s.x,s.y,15, outline);
+                    }else{
+                        c.drawCircle(s.x,s.y,10, p);
+                        c.drawCircle(s.x,s.y,10, outline);
+                    }
 
                 }
             }
@@ -327,6 +345,7 @@ public class GameView extends View {
             c.drawLine(prt.left.x,prt.left.y,prt._x, prt._y,p);
             c.drawLine(prt.right.x,prt.right.y,prt._x, prt._y,p);
             p.setColor(game.tiles[0].typeToColor(prt.type));
+            if(prt.type == Tile.RESOURCE_TYPE.DESERT) p.setColor(Color.WHITE);
             c.drawCircle(prt._x,prt._y,sideLength/6,p);
 
         }
@@ -365,6 +384,11 @@ public class GameView extends View {
             c.drawCircle(width - height/6 - 10, height/2, height / 12, circlePaint);
             circlePaint.setColor(Color.WHITE);
             c.drawText("B", width-height/6 - 10, height/2 + 20 , circlePaint);
+
+            circlePaint.setColor(Color.BLACK);
+            c.drawCircle(height/6 + 10, height/2, height /12, circlePaint);
+            circlePaint.setColor(Color.WHITE);
+            c.drawText("D", height/6 + 10, height / 2 + 20, circlePaint);
 
 
         }else if(game.gameLogic.state == GameLogic.GAME_STATE.MAIN_MENU){
@@ -496,6 +520,8 @@ public class GameView extends View {
 
         if(Math.sqrt(Math.pow(x - (width - height / 6 - 10), 2) + Math.pow(y - height / 2, 2)) <= height / 12){
             game.gameLogic.state = GameLogic.GAME_STATE.MAIN_MENU;
+        }else if(Math.sqrt(Math.pow(x - (height / 6 + 10), 2) + Math.pow(y - height / 2, 2)) <= height / 12){
+            game.gameLogic.state = GameLogic.GAME_STATE.USE_DEV_CARD;
         }
     }
 
@@ -590,7 +616,12 @@ public class GameView extends View {
 
     public void onTouchMenuTradeChest(float x, float y){
         Player p = game.gameLogic.currentPlayer;
-        if(x> 3*width/8 && x< 5*width/8 && y > height/8 && y < height / 4){
+        if(x> 3*width/8 && x< 5*width/8 && y > height/8 && y < height / 4  && game.gameLogic.currentPlayer.canTradeChest()){
+            game.gameLogic.currentPlayer.cards.put(Tile.RESOURCE_TYPE.BRICK, game.gameLogic.currentPlayer.cards.get(Tile.RESOURCE_TYPE.BRICK)+ game.gameLogic.currentPlayer.trade.tradeBrick);
+            game.gameLogic.currentPlayer.cards.put(Tile.RESOURCE_TYPE.ROCK, game.gameLogic.currentPlayer.cards.get(Tile.RESOURCE_TYPE.ROCK)+ game.gameLogic.currentPlayer.trade.tradeRock);
+            game.gameLogic.currentPlayer.cards.put(Tile.RESOURCE_TYPE.WHEAT, game.gameLogic.currentPlayer.cards.get(Tile.RESOURCE_TYPE.WHEAT)+ game.gameLogic.currentPlayer.trade.tradeWheat);
+            game.gameLogic.currentPlayer.cards.put(Tile.RESOURCE_TYPE.SHEEP, game.gameLogic.currentPlayer.cards.get(Tile.RESOURCE_TYPE.SHEEP)+ game.gameLogic.currentPlayer.trade.tradeSheep);
+            game.gameLogic.currentPlayer.cards.put(Tile.RESOURCE_TYPE.WOOD, game.gameLogic.currentPlayer.cards.get(Tile.RESOURCE_TYPE.WOOD)+ game.gameLogic.currentPlayer.trade.tradeWood);
             game.gameLogic.state = GameLogic.GAME_STATE.TRADE_PROPOSE;
         }else if(x < width/8 || x > 7*width/8 || y < height/4 || y > 3*height/4) {
             game.gameLogic.state = GameLogic.GAME_STATE.STEADY;
@@ -1350,7 +1381,42 @@ public class GameView extends View {
     public void onTouchGameStart(float x, float y){
 
         if(game.gameLogic.builtSettlementNeedRoad){
-            //TODO ROADS
+            Player p = game.gameLogic.currentPlayer;
+            boolean closeEnough = false;
+            for(Tile t: game.tiles){
+                for(Spot s: t.spots){
+                    if(s._player == p.id ){
+                        if(Math.sqrt(Math.pow(x-s.x,2) + Math.pow(y-s.y,2)) < sideLength * 1.5){
+                            closeEnough = true;
+                        }
+                    }
+                }
+            }
+            if(closeEnough) {
+                int wood = p.cards.get(Tile.RESOURCE_TYPE.WOOD);
+                onTouchPlaceRoad(x, y);
+                game.gameLogic.state = GameLogic.GAME_STATE.GAME_START;
+                if (wood > p.cards.get(Tile.RESOURCE_TYPE.WOOD)) {
+                    p.cards.put(Tile.RESOURCE_TYPE.BRICK, p.cards.get(Tile.RESOURCE_TYPE.BRICK) + 1);
+                    p.cards.put(Tile.RESOURCE_TYPE.WOOD, p.cards.get(Tile.RESOURCE_TYPE.WOOD) + 1);
+                    game.gameLogic.builtSettlementNeedRoad = false;
+                    int counter = game.gameLogic.currentPlayer.id;
+                    if (counter == 4) counter = 0;
+                    game.gameLogic.currentPlayer = game.players[counter];
+                    game.gameLogic.message = "Place a settlement Player " + game.gameLogic.currentPlayer.id;
+                    if (game.gameLogic.currentPlayer.points == 2) {
+                        game.gameLogic.state = GameLogic.GAME_STATE.STEADY;
+                        game.gameLogic.message = "Its your turn Player " + game.gameLogic.currentPlayer.id;
+                        game.gameLogic.currentPlayer.rollDice();
+                        int roll = game.gameLogic.currentPlayer.roll.one + game.gameLogic.currentPlayer.roll.two;
+                        if (roll != 7) {
+                            game.giveOutResources(roll);
+                        } else {
+                            game.gameLogic.state = GameLogic.GAME_STATE.MOVE_ROBBER;
+                        }
+                    }
+                }
+            }
 
         } else {
             double min = 250;
@@ -1379,29 +1445,168 @@ public class GameView extends View {
                 }
 
                 for (Spot s : spotsToSettle) {
+                    for(Port p: game.ports){
+                        if (p._x == s.x && p._y == s.y && !game.gameLogic.currentPlayer.ports.contains(p.type)){
+                            game.gameLogic.currentPlayer.ports.add(p.type);
+                        }
+                    }
                     s._player = game.gameLogic.currentPlayer.id;
                     if (game.gameLogic.currentPlayer.points == 1) {
                         game.gameLogic.currentPlayer.addResource(s.type);
                     }
                 }
                 game.gameLogic.currentPlayer.addSettlement();
-                int counter = game.gameLogic.currentPlayer.id;
-                if (counter == 4) counter = 0;
-                game.gameLogic.currentPlayer = game.players[counter];
-                game.gameLogic.message = "Place a settlement Player " + game.gameLogic.currentPlayer.id;
-                if (game.gameLogic.currentPlayer.points == 2) {
-                    game.gameLogic.state = GameLogic.GAME_STATE.STEADY;
-                    game.gameLogic.message = "Its your turn Player " + game.gameLogic.currentPlayer.id;
-                    game.gameLogic.currentPlayer.rollDice();
-                    int roll = game.gameLogic.currentPlayer.roll.one + game.gameLogic.currentPlayer.roll.two;
-                    if (roll != 7) {
-                        game.giveOutResources(roll);
-                    } else {
-                        game.gameLogic.state = GameLogic.GAME_STATE.MOVE_ROBBER;
-                    }
-                }
+                game.gameLogic.builtSettlementNeedRoad = true;
+                game.gameLogic.message = "Place a Road Player "+ game.gameLogic.currentPlayer.id;
 
             }
         }
     }
+
+    public void onTouchPlaceSettlement(float x, float y){
+
+        double min = 250;
+        Spot minSpot = null;
+        for (Tile t : game.tiles) {
+            for (Spot s : t.spots) {
+                double distance = Math.sqrt(Math.pow(x - s.x, 2) + Math.pow(y - s.y, 2));
+                if (distance < min) {
+                    minSpot = s;
+                    min = distance;
+                }
+            }
+        }
+        ArrayList<Spot> spotsToSettle = new ArrayList<>();
+        if (min < sideLength * 1.5) {
+            for (Tile t : game.tiles) {
+                for (Spot s : t.spots) {
+                    if (Math.sqrt(Math.pow(s.x - minSpot.x, 2) + Math.pow(s.y - minSpot.y, 2)) <= sideLength && s._player != 0) {
+                        game.gameLogic.message = "Can't settle there";
+                        return;
+                    }
+                    if (s.x == minSpot.x && s.y == minSpot.y) {
+                        spotsToSettle.add(s);
+                    }
+                }
+            }
+
+            for (Spot s : spotsToSettle) {
+                for(Port p: game.ports){
+                    if (p._x == s.x && p._y == s.y && !game.gameLogic.currentPlayer.ports.contains(p.type)){
+                        game.gameLogic.currentPlayer.ports.add(p.type);
+                    }
+                }
+                s._player = game.gameLogic.currentPlayer.id;
+                if (game.gameLogic.currentPlayer.points == 1) {
+                    game.gameLogic.currentPlayer.addResource(s.type);
+                }
+            }
+            game.gameLogic.currentPlayer.addSettlement();
+            game.gameLogic.state = GameLogic.GAME_STATE.STEADY;
+        }
+    }
+
+    public void onTouchPlaceRoad(float x, float y){
+        double min = sideLength * 1.5;
+        Spot minSpotOne = null, minSpotTwo = null;
+        double minSpotOneDistance = 0, minSpotTwoDistance = 0;
+        for(Tile t: game.tiles){
+            for(Spot s: t.spots){
+                if(minSpotOne == null){
+                    minSpotOne = s;
+                    minSpotOneDistance = Math.sqrt(Math.pow(s.x - x, 2) + Math.pow(s.y - y, 2));
+                } else if(minSpotTwo == null) {
+                    minSpotTwo = s;
+                    minSpotTwoDistance =  Math.sqrt(Math.pow(s.x - x, 2) + Math.pow(s.y - y, 2));
+                }
+                double sDistance = Math.sqrt(Math.pow(s.x - x, 2) + Math.pow(s.y - y, 2));
+                if(sDistance < minSpotOneDistance){
+                    minSpotTwo = minSpotOne;
+                    minSpotTwoDistance = minSpotOneDistance;
+                    minSpotOne = s;
+                    minSpotOneDistance = sDistance;
+                }else if(sDistance < minSpotTwoDistance && sDistance != minSpotOneDistance){
+                    minSpotTwo = s;
+                    minSpotTwoDistance = sDistance;
+                }
+            }
+        }
+
+        if(minSpotOneDistance < min && minSpotTwoDistance < min){
+            Road r = new Road(minSpotOne, minSpotTwo);
+            for(Player p: game.players){
+                for(Road road: p.roads){
+                    if (road.one.x == r.one.x && road.one.y == r.one.y && road.two.x == r.two.x && road.two.y == r.two.y){
+                        return;
+                    }
+                }
+            }
+            Player p = game.gameLogic.currentPlayer;
+            p.addRoad(r);
+            p.cards.put(Tile.RESOURCE_TYPE.BRICK, p.cards.get(Tile.RESOURCE_TYPE.BRICK)-1);
+            p.cards.put(Tile.RESOURCE_TYPE.WOOD, p.cards.get(Tile.RESOURCE_TYPE.WOOD)-1);
+            game.gameLogic.state = GameLogic.GAME_STATE.STEADY;
+
+            if(game.gameLogic.longestRoad != null){
+                if(game.gameLogic.longestRoad.longestRoad < game.gameLogic.currentPlayer.longestRoad){
+                    game.gameLogic.longestRoad.hasLongestRoad = false;
+                    game.gameLogic.longestRoad.points -= 2;
+                    game.gameLogic.longestRoad = game.gameLogic.currentPlayer;
+                    game.gameLogic.longestRoad.addLongestRoad();
+                }
+            }else if(p.longestRoad == 5){
+                game.gameLogic.longestRoad = p;
+            }
+        }
+    }
+
+    public void onTouchPlaceCity(float x, float y){
+        double min = sideLength * 1.5;
+        ArrayList<Spot> spotsToAdd = new ArrayList<>();
+        for(Tile t: game.tiles){
+            for(Spot s: t.spots){
+                double distance = Math.sqrt(Math.pow(x - s.x,2) + Math.pow(y - s.y,2));
+                if(distance < min){
+                    min = distance;
+                    spotsToAdd.clear();
+                    spotsToAdd.add(s);
+                }else if(distance == min){
+                    spotsToAdd.add(s);
+                }
+            }
+        }
+        if(spotsToAdd.size() == 0) return;
+        for(Spot s: spotsToAdd){
+            if(s._player!= game.gameLogic.currentPlayer.id){
+                return;
+            }
+            s._city = true;
+        }
+        Player p = game.gameLogic.currentPlayer;
+        game.gameLogic.currentPlayer.addCity();
+        p.cards.put(Tile.RESOURCE_TYPE.WHEAT, p.cards.get(Tile.RESOURCE_TYPE.WHEAT)-1);
+        p.cards.put(Tile.RESOURCE_TYPE.WHEAT, p.cards.get(Tile.RESOURCE_TYPE.WHEAT)-1);
+        p.cards.put(Tile.RESOURCE_TYPE.ROCK, p.cards.get(Tile.RESOURCE_TYPE.ROCK)-1);
+        p.cards.put(Tile.RESOURCE_TYPE.ROCK, p.cards.get(Tile.RESOURCE_TYPE.ROCK)-1);
+        p.cards.put(Tile.RESOURCE_TYPE.ROCK, p.cards.get(Tile.RESOURCE_TYPE.ROCK)-1);
+        game.gameLogic.state = GameLogic.GAME_STATE.STEADY;
+        if(p.points == 10) game.gameLogic.state = GameLogic.GAME_STATE.GAME_OVER;
+    }
+
+    public void drawRoads(Canvas c, Paint roadPaint){
+        roadPaint.setStyle(Paint.Style.FILL_AND_STROKE);
+        for(Player p: game.players){
+            roadPaint.setColor(p.color);
+            for(Road r: p.roads){
+                roadPaint.setStrokeWidth(10);
+                roadPaint.setColor(Color.BLACK);
+                c.drawLine(r.one.x, r.one.y, r.two.x, r.two.y, roadPaint);
+                roadPaint.setStrokeWidth(8);
+                roadPaint.setColor(p.color);
+                c.drawLine(r.one.x, r.one.y, r.two.x, r.two.y, roadPaint);
+            }
+        }
+    }
+
+
 }

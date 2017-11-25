@@ -139,13 +139,13 @@ public class GameBoard {
     public void fillPorts(){
         ports = new Port[9];
         ports[0] = new Port(tiles[0].spots[0], tiles[0].spots[5], Tile.RESOURCE_TYPE.WOOD);
-        ports[1] = new Port(tiles[1].spots[1], tiles[1].spots[0], null);
+        ports[1] = new Port(tiles[1].spots[1], tiles[1].spots[0], Tile.RESOURCE_TYPE.DESERT);
         ports[2] = new Port(tiles[6].spots[1], tiles[6].spots[0], Tile.RESOURCE_TYPE.BRICK);
-        ports[3] = new Port(tiles[11].spots[2], tiles[11].spots[1], null);
+        ports[3] = new Port(tiles[11].spots[2], tiles[11].spots[1], Tile.RESOURCE_TYPE.DESERT);
         ports[4] = new Port(tiles[15].spots[3], tiles[15].spots[2], Tile.RESOURCE_TYPE.SHEEP);
-        ports[5] = new Port(tiles[17].spots[3], tiles[17].spots[2], null);
+        ports[5] = new Port(tiles[17].spots[3], tiles[17].spots[2], Tile.RESOURCE_TYPE.DESERT);
         ports[6] = new Port(tiles[16].spots[4], tiles[16].spots[3], Tile.RESOURCE_TYPE.ROCK);
-        ports[7] = new Port(tiles[12].spots[5], tiles[12].spots[4], null);
+        ports[7] = new Port(tiles[12].spots[5], tiles[12].spots[4], Tile.RESOURCE_TYPE.DESERT);
         ports[8] = new Port(tiles[3].spots[5], tiles[3].spots[4], Tile.RESOURCE_TYPE.WHEAT);
     }
 
@@ -191,7 +191,6 @@ public class GameBoard {
         for(Tile t: tiles){
             if(t.number == roll && !t.robbed){
                for(Spot s: t.spots){
-                   Log.v("DEBUG_TAG" , "Spot owned by Player " + s._player);
                    if(s._player != 0){
                        players[s._player - 1].addResource(t.type);
                        if(s._city){

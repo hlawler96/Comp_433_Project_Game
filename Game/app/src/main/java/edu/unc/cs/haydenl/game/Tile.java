@@ -133,7 +133,7 @@ class Port {
 
     Spot left, right;
     Tile.RESOURCE_TYPE type;
-    int _x, _y, color;
+    int _x, _y;
 
     public Port(Spot l, Spot r, Tile.RESOURCE_TYPE t){
         left = l;

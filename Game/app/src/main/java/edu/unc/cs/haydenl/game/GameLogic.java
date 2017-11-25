@@ -10,12 +10,14 @@ import java.util.List;
 public class GameLogic {
 
     public GameBoard game;
-    public enum GAME_STATE{STEADY, MAIN_MENU, MENU_BUILD, MENU_TRADE_PLAYERS,MENU_TRADE_CHEST, SETTINGS, ARE_YOU_SURE, TRADE_PROPOSE, TRADE_OVER, ROBBING, MOVE_ROBBER, STEAL_FROM_PLAYER, GAME_START}
+    public enum GAME_STATE{STEADY, MAIN_MENU, MENU_BUILD, MENU_TRADE_PLAYERS,MENU_TRADE_CHEST,
+        ARE_YOU_SURE, TRADE_PROPOSE, TRADE_OVER, ROBBING, MOVE_ROBBER, STEAL_FROM_PLAYER, GAME_START, PLACE_SETTLEMENT, PLACE_ROAD, PLACE_CITY, USE_DEV_CARD, GAME_OVER}
     public GAME_STATE state;
-    public Player currentPlayer, playerToTradeWith, playerToStealFrom;
+    public Player currentPlayer, playerToTradeWith, playerToStealFrom, longestRoad, largestArmy;
     public String message;
     Tile prevRobbed;
     public boolean builtSettlementNeedRoad;
+    public DevCards devCards;
 
     ArrayList<Player> playersInTrade, playersToRob;
     public int tradeCounter, robCounter;
@@ -26,6 +28,10 @@ public class GameLogic {
         currentPlayer = game.players[0];
         message = "Place a settlement Player " + currentPlayer.id;
         builtSettlementNeedRoad = false;
+        devCards = new DevCards();
+        longestRoad = null;
+        largestArmy = null;
+
     }
 
     public List<Player> tradePropose(){
@@ -170,6 +176,9 @@ public class GameLogic {
             return false;
         }
     }
+
+
+
 
 }
 
