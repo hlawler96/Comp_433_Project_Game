@@ -1,5 +1,7 @@
 package edu.unc.cs.haydenl.game;
 
+import android.util.Log;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,13 +13,15 @@ public class GameLogic {
 
     public GameBoard game;
     public enum GAME_STATE{STEADY, MAIN_MENU, MENU_BUILD, MENU_TRADE_PLAYERS,MENU_TRADE_CHEST,
-        ARE_YOU_SURE, TRADE_PROPOSE, TRADE_OVER, ROBBING, MOVE_ROBBER, STEAL_FROM_PLAYER, GAME_START, PLACE_SETTLEMENT, PLACE_ROAD, PLACE_CITY, USE_DEV_CARD, GAME_OVER}
+        ARE_YOU_SURE, TRADE_PROPOSE, TRADE_OVER, ROBBING, MOVE_ROBBER, STEAL_FROM_PLAYER, GAME_START,
+        PLACE_SETTLEMENT, PLACE_ROAD, PLACE_CITY, USE_DEV_CARD, GAME_OVER, ROAD_BUILDING, YEAR_OF_PLENTY, MONOPOLY, ASK_KNIGHT}
     public GAME_STATE state;
     public Player currentPlayer, playerToTradeWith, playerToStealFrom, longestRoad, largestArmy;
     public String message;
     Tile prevRobbed;
-    public boolean builtSettlementNeedRoad;
+    public boolean builtSettlementNeedRoad, snake, usedKnightBeforeRoll;
     public DevCards devCards;
+
 
     ArrayList<Player> playersInTrade, playersToRob;
     public int tradeCounter, robCounter;
@@ -31,6 +35,8 @@ public class GameLogic {
         devCards = new DevCards();
         longestRoad = null;
         largestArmy = null;
+        snake = false;
+        usedKnightBeforeRoll = false;
 
     }
 
@@ -60,10 +66,13 @@ public class GameLogic {
                             !player.equals(currentPlayer)) {
                         playersInTrade.add(game.players[i]);
                         game.players[i].trade = trade.inverse();
+                    }else if(!player.equals(currentPlayer)){
+                        player.trade = new Trade();
                     }
                 }
                 if (playersInTrade.size() == 0) {
                     message = "No one is available to trade :(";
+                    state = GAME_STATE.MENU_TRADE_PLAYERS;
 
                 }else {
                     message = "Trade Proposal for Player" + playersInTrade.get(0).id;
@@ -81,13 +90,14 @@ public class GameLogic {
     public void getBestOffer(){
 
             for(Player offer: playersInTrade){
-                if(offer.trade.equals(currentPlayer.trade)){
+                if(offer.trade.equals(currentPlayer.trade.inverse()) && offer.trade.isValid(currentPlayer)){
                     playerToTradeWith = offer;
+                    return;
 
                 }
             }
-            for(Player offer: playersInTrade){
-                if(offer.trade.accept){
+            for(Player offer: playersInTrade ){
+                if(offer.trade.accept && offer.trade.isValid(currentPlayer)){
                     playerToTradeWith = offer;
 
                 }
@@ -96,11 +106,12 @@ public class GameLogic {
     }
 
     public void trade(Player one, Player two){
-        one.cards.put(Tile.RESOURCE_TYPE.WHEAT, one.cards.get(Tile.RESOURCE_TYPE.WHEAT) + one.trade.tradeWheat);
-        one.cards.put(Tile.RESOURCE_TYPE.ROCK, one.cards.get(Tile.RESOURCE_TYPE.ROCK) + one.trade.tradeRock);
-        one.cards.put(Tile.RESOURCE_TYPE.BRICK, one.cards.get(Tile.RESOURCE_TYPE.BRICK) + one.trade.tradeBrick);
-        one.cards.put(Tile.RESOURCE_TYPE.SHEEP, one.cards.get(Tile.RESOURCE_TYPE.SHEEP) + one.trade.tradeSheep);
-        one.cards.put(Tile.RESOURCE_TYPE.WOOD, one.cards.get(Tile.RESOURCE_TYPE.WOOD) + one.trade.tradeWood);
+        one.cards.put(Tile.RESOURCE_TYPE.WHEAT, one.cards.get(Tile.RESOURCE_TYPE.WHEAT) + two.trade.inverse().tradeWheat);
+        one.cards.put(Tile.RESOURCE_TYPE.ROCK, one.cards.get(Tile.RESOURCE_TYPE.ROCK) + two.trade.inverse().tradeRock);
+        one.cards.put(Tile.RESOURCE_TYPE.BRICK, one.cards.get(Tile.RESOURCE_TYPE.BRICK) + two.trade.inverse().tradeBrick);
+        one.cards.put(Tile.RESOURCE_TYPE.SHEEP, one.cards.get(Tile.RESOURCE_TYPE.SHEEP) + two.trade.inverse().tradeSheep);
+        one.cards.put(Tile.RESOURCE_TYPE.WOOD, one.cards.get(Tile.RESOURCE_TYPE.WOOD) + two.trade.inverse().tradeWood);
+
         two.cards.put(Tile.RESOURCE_TYPE.WHEAT, two.cards.get(Tile.RESOURCE_TYPE.WHEAT) + two.trade.tradeWheat);
         two.cards.put(Tile.RESOURCE_TYPE.ROCK, two.cards.get(Tile.RESOURCE_TYPE.ROCK) + two.trade.tradeRock);
         two.cards.put(Tile.RESOURCE_TYPE.BRICK, two.cards.get(Tile.RESOURCE_TYPE.BRICK) + two.trade.tradeBrick);
@@ -165,6 +176,8 @@ public class GameLogic {
         }
         state = GAME_STATE.STEADY;
         message = "Its your turn Player " + currentPlayer.id;
+        playerToStealFrom.numResourceCards --;
+        currentPlayer.numResourceCards++;
         playerToStealFrom = null;
     }
 
@@ -221,12 +234,22 @@ class Trade{
 
     public boolean isValid(Player p){
         if(((tradeWheat <= 0 && tradeWood <= 0 && tradeBrick <= 0 && tradeSheep <= 0 && tradeRock <= 0) ||
-                (tradeWheat >= 0 && tradeWood >= 0 && tradeBrick >= 0 && tradeSheep >= 0 && tradeRock >= 0)) &&
-                p.hasEnoughResources(this)){
+                (tradeWheat >= 0 && tradeWood >= 0 && tradeBrick >= 0 && tradeSheep >= 0 && tradeRock >= 0)) ||
+                !p.hasEnoughResources(this)){
             return false;
         }else {
             return true;
         }
+    }
+
+    public String toString(){
+        String output = "";
+        output += "Wood: " + tradeWood + " , ";
+        output += "Wheat: " + tradeWheat + " , ";
+        output += "Rock: " + tradeRock + " , ";
+        output += "Brick: " + tradeBrick + " , ";
+        output += "Sheep: " + tradeSheep ;
+        return output;
     }
 
 

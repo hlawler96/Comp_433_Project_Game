@@ -1,6 +1,7 @@
 package edu.unc.cs.haydenl.game;
 
 import android.graphics.Color;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -136,6 +137,7 @@ public class Player {
     }
 
     public boolean hasEnoughResources(Trade t){
+        Log.v("DEBUG_TAG", "Trade: " + trade.toString() + " Player has : " + this.cards.toString());
         if(t.tradeBrick <= cards.get(Tile.RESOURCE_TYPE.BRICK) &&
                 t.tradeRock <= cards.get(Tile.RESOURCE_TYPE.ROCK) &&
                 t.tradeWood <= cards.get(Tile.RESOURCE_TYPE.WOOD) &&
@@ -305,6 +307,13 @@ public class Player {
         return max;
     }
 
+    public int getDevCardCount(DevCards.CARD_TYPE type){
+        int count = 0;
+        for(DevCards.CARD_TYPE t: devCards){
+            if(t == type) count ++;
+        }
+        return count;
+    }
 
 
 

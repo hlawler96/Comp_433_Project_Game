@@ -24,10 +24,6 @@ import java.util.List;
  *
  * TODO:
  *
- * Hayden
- * - USE_DEV_CARD
- * - Ask if you want to use knight before a dice roll
- *
  * Mason
  * - Get images for tiles
  * - Get images for Ports
@@ -113,10 +109,10 @@ public class GameView extends View {
         drawPlayerBoxes(c,p);
         drawTiles(c,p);
         drawPorts(c,p);
-        drawMenu(c);
-        drawMessageBar(c,p);
+        if(game.gameLogic.state != GameLogic.GAME_STATE.TRADE_OVER) drawMessageBar(c,p);
         drawRoads(c, p);
         drawSettlements(c,p);
+        drawMenu(c);
     }
 
     public void onTouch(float x, float y){
@@ -140,7 +136,15 @@ public class GameView extends View {
                 game.gameLogic.state = GameLogic.GAME_STATE.PLACE_ROAD;
                 game.gameLogic.message = "Place a Road";
             }else if (game.gameLogic.currentPlayer.canBuildDevCard() && game.gameLogic.devCards.size > 0){
-                game.gameLogic.currentPlayer.addDevCard(game.gameLogic.devCards.getCard());
+                DevCards.CARD_TYPE type = game.gameLogic.devCards.getCard();
+                game.gameLogic.currentPlayer.addDevCard(type);
+                game.gameLogic.devCards.cards.remove(0);
+                if(type == DevCards.CARD_TYPE.VICTORY_POINT){
+                    game.gameLogic.currentPlayer.points += 1;
+                    if(game.gameLogic.currentPlayer.points >= 10){
+                        game.gameLogic.state = GameLogic.GAME_STATE.GAME_OVER;
+                    }
+                }
             }
 
         }else if(game.gameLogic.state == GameLogic.GAME_STATE.MENU_TRADE_PLAYERS){
@@ -178,6 +182,18 @@ public class GameView extends View {
             onTouchPlaceCity(x,y);
         }else if( game.gameLogic.state == GameLogic.GAME_STATE.PLACE_ROAD){
             onTouchPlaceRoad(x,y);
+        }else if( game.gameLogic.state == GameLogic.GAME_STATE.USE_DEV_CARD){
+            onTouchUseDevCard(x,y);
+        }else if( game.gameLogic.state == GameLogic.GAME_STATE.YEAR_OF_PLENTY){
+            onTouchYearOfPlenty(x,y);
+        }else if( game.gameLogic.state == GameLogic.GAME_STATE.MONOPOLY){
+            onTouchMonopoly(x,y);
+        }else if(game.gameLogic.state == GameLogic.GAME_STATE.ROAD_BUILDING){
+            onTouchRoadBuilding(x,y);
+        }else if(game.gameLogic.state == GameLogic.GAME_STATE.GAME_OVER){
+            onTouchGameOver(x,y);
+        }else if(game.gameLogic.state == GameLogic.GAME_STATE.ASK_KNIGHT){
+            onTouchAskKnight(x,y);
         }
         this.invalidate();
 
@@ -445,6 +461,16 @@ public class GameView extends View {
             drawMoveRobber(fullBoxPaint, boxOutline, textPaint, c);
         }else if( game.gameLogic.state == GameLogic.GAME_STATE.STEAL_FROM_PLAYER){
             drawStealFromPlayer(textPaint,c);
+        }else if(game.gameLogic.state == GameLogic.GAME_STATE.USE_DEV_CARD){
+            drawUseDevCard(fullBoxPaint, boxOutline, textPaint, c);
+        }else if(game.gameLogic.state == GameLogic.GAME_STATE.MONOPOLY){
+            drawMonopoly(fullBoxPaint,boxOutline,textPaint,c);
+        }else if(game.gameLogic.state == GameLogic.GAME_STATE.YEAR_OF_PLENTY){
+            drawYearOfPlenty(fullBoxPaint,boxOutline,textPaint,c);
+        }else if(game.gameLogic.state == GameLogic.GAME_STATE.GAME_OVER){
+            drawGameOver(fullBoxPaint, boxOutline, textPaint,c);
+        }else if(game.gameLogic.state == GameLogic.GAME_STATE.ASK_KNIGHT){
+            drawAskKnight(fullBoxPaint, boxOutline, textPaint, c);
         }
 
     }
@@ -542,42 +568,46 @@ public class GameView extends View {
                 index = 0;
             }
             game.gameLogic.currentPlayer = game.players[index];
-            game.gameLogic.state = GameLogic.GAME_STATE.STEADY;
-            game.gameLogic.currentPlayer.rollDice();
-            int roll = game.gameLogic.currentPlayer.roll.one + game.gameLogic.currentPlayer.roll.two;
-            if(roll != 7 ) {
-                game.giveOutResources(roll);
-            }else{
-                time = System.currentTimeMillis();
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        while(true) {
-                            try {
-                                Thread.sleep(1000);
-                                ((Activity) context).runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        redraw();
+            if(game.gameLogic.currentPlayer.devCards.contains(DevCards.CARD_TYPE.KNIGHT)){
+                game.gameLogic.state = GameLogic.GAME_STATE.ASK_KNIGHT;
+            }else {
+                game.gameLogic.state = GameLogic.GAME_STATE.STEADY;
+                game.gameLogic.currentPlayer.rollDice();
+                int roll = game.gameLogic.currentPlayer.roll.one + game.gameLogic.currentPlayer.roll.two;
+                if (roll != 7) {
+                    game.giveOutResources(roll);
+                } else {
+                    time = System.currentTimeMillis();
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            while (true) {
+                                try {
+                                    Thread.sleep(1000);
+                                    ((Activity) context).runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            redraw();
+                                        }
+                                    });
+                                    if (game.gameLogic.count3sec(time)) {
+                                        return;
                                     }
-                                });
-                                if(game.gameLogic.count3sec(time)){
-                                    return ;
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
                                 }
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
                             }
                         }
+                    }).start();
+
+
+                    game.gameLogic.robbery();
+                    if (game.gameLogic.state == GameLogic.GAME_STATE.ROBBING) {
+                        game.gameLogic.playersToRob.get(game.gameLogic.robCounter).trade = new Trade();
                     }
-                }).start();
 
 
-                game.gameLogic.robbery();
-                if(game.gameLogic.state == GameLogic.GAME_STATE.ROBBING){
-                    game.gameLogic.playersToRob.get(game.gameLogic.robCounter).trade = new Trade();
                 }
-
-
             }
         }
     }
@@ -987,7 +1017,8 @@ public class GameView extends View {
     }
 
     public void drawTradeEnded(Paint fullBoxPaint, Paint boxOutline, Paint textPaint, Canvas c) {
-            if(game.gameLogic.playerToTradeWith == null){
+        Log.v("DEBUG_TAG", "Proposed Trade was " + game.gameLogic.currentPlayer.trade.toString());
+        if(game.gameLogic.playerToTradeWith == null){
                 game.gameLogic.getBestOffer();
             }
             Player p = game.gameLogic.playerToTradeWith;
@@ -1002,11 +1033,12 @@ public class GameView extends View {
                     if(game.players[i].equals(game.gameLogic.currentPlayer)){
                         i ++;
                     }
-                    if(game.players[i].trade.accept){
+                    if(game.players[i].trade.accept && game.players[i].trade.isValid(game.gameLogic.currentPlayer)){
                         textPaint.setStrokeWidth(2);
                         if(game.players[i].trade.equals(game.gameLogic.currentPlayer.trade.inverse())) {
                             fill.setColor(Color.GREEN);
                         }else{
+                            Log.v("DEBUG_TAG", game.players[i].trade.toString());
                             fill.setColor(Color.YELLOW);
                         }
                     }else {
@@ -1036,7 +1068,7 @@ public class GameView extends View {
                 fill.setColor(game.tiles[0].typeToColor(Tile.RESOURCE_TYPE.WHEAT));
                 c.drawCircle(width / 8 + width / 12, height / 2, height / 20, fill);
                 c.drawCircle(width / 8 + width / 12, height / 2, height / 20, boxOutline);
-                c.drawText("" + p.trade.tradeWheat, width / 8 + width / 12, height / 2 + 20, textPaint);
+                c.drawText("" + p.trade.inverse().tradeWheat, width / 8 + width / 12, height / 2 + 20, textPaint);
                 c.drawRect(width / 8 + 1 * width / 12 - height / 20, 3 * height / 8 - height / 20, width / 8 + 1 * width / 12 + height / 20, 3 * height / 8 + height / 20, fill);
                 c.drawRect(width / 8 + 1 * width / 12 - height / 20, 5 * height / 8 - height / 20, width / 8 + 1 * width / 12 + height / 20, 5 * height / 8 + height / 20, fill);
                 c.drawRect(width / 8 + 1 * width / 12 - height / 20, 3 * height / 8 - height / 20, width / 8 + 1 * width / 12 + height / 20, 3 * height / 8 + height / 20, boxOutline);
@@ -1047,7 +1079,7 @@ public class GameView extends View {
                 fill.setColor(game.tiles[0].typeToColor(Tile.RESOURCE_TYPE.WOOD));
                 c.drawCircle(width / 8 + 2 * width / 12, height / 2, height / 20, fill);
                 c.drawCircle(width / 8 + 2 * width / 12, height / 2, height / 20, boxOutline);
-                c.drawText("" + p.trade.tradeWood, width / 8 + 2 * width / 12, height / 2 + 20, textPaint);
+                c.drawText("" + p.trade.inverse().tradeWood, width / 8 + 2 * width / 12, height / 2 + 20, textPaint);
                 c.drawRect(width / 8 + 2 * width / 12 - height / 20, 3 * height / 8 - height / 20, width / 8 + 2 * width / 12 + height / 20, 3 * height / 8 + height / 20, fill);
                 c.drawRect(width / 8 + 2 * width / 12 - height / 20, 5 * height / 8 - height / 20, width / 8 + 2 * width / 12 + height / 20, 5 * height / 8 + height / 20, fill);
                 c.drawRect(width / 8 + 2 * width / 12 - height / 20, 3 * height / 8 - height / 20, width / 8 + 2 * width / 12 + height / 20, 3 * height / 8 + height / 20, boxOutline);
@@ -1058,7 +1090,7 @@ public class GameView extends View {
                 fill.setColor(game.tiles[0].typeToColor(Tile.RESOURCE_TYPE.ROCK));
                 c.drawCircle(width / 8 + 3 * width / 12, height / 2, height / 20, fill);
                 c.drawCircle(width / 8 + 3 * width / 12, height / 2, height / 20, boxOutline);
-                c.drawText("" + p.trade.tradeRock, width / 8 + 3 * width / 12, height / 2 + 20, textPaint);
+                c.drawText("" + p.trade.inverse().tradeRock, width / 8 + 3 * width / 12, height / 2 + 20, textPaint);
                 c.drawRect(width / 8 + 3 * width / 12 - height / 20, 3 * height / 8 - height / 20, width / 8 + 3 * width / 12 + height / 20, 3 * height / 8 + height / 20, fill);
                 c.drawRect(width / 8 + 3 * width / 12 - height / 20, 5 * height / 8 - height / 20, width / 8 + 3 * width / 12 + height / 20, 5 * height / 8 + height / 20, fill);
                 c.drawRect(width / 8 + 3 * width / 12 - height / 20, 3 * height / 8 - height / 20, width / 8 + 3 * width / 12 + height / 20, 3 * height / 8 + height / 20, boxOutline);
@@ -1069,7 +1101,7 @@ public class GameView extends View {
                 fill.setColor(game.tiles[0].typeToColor(Tile.RESOURCE_TYPE.BRICK));
                 c.drawCircle(width / 8 + 4 * width / 12, height / 2, height / 20, fill);
                 c.drawCircle(width / 8 + 4 * width / 12, height / 2, height / 20, boxOutline);
-                c.drawText("" + p.trade.tradeBrick, width / 8 + 4 * width / 12, height / 2 + 20, textPaint);
+                c.drawText("" + p.trade.inverse().tradeBrick, width / 8 + 4 * width / 12, height / 2 + 20, textPaint);
                 c.drawRect(width / 8 + 4 * width / 12 - height / 20, 3 * height / 8 - height / 20, width / 8 + 4 * width / 12 + height / 20, 3 * height / 8 + height / 20, fill);
                 c.drawRect(width / 8 + 4 * width / 12 - height / 20, 5 * height / 8 - height / 20, width / 8 + 4 * width / 12 + height / 20, 5 * height / 8 + height / 20, fill);
                 c.drawRect(width / 8 + 4 * width / 12 - height / 20, 3 * height / 8 - height / 20, width / 8 + 4 * width / 12 + height / 20, 3 * height / 8 + height / 20, boxOutline);
@@ -1080,7 +1112,7 @@ public class GameView extends View {
                 fill.setColor(game.tiles[0].typeToColor(Tile.RESOURCE_TYPE.SHEEP));
                 c.drawCircle(width / 8 + 5 * width / 12, height / 2, height / 20, fill);
                 c.drawCircle(width / 8 + 5 * width / 12, height / 2, height / 20, boxOutline);
-                c.drawText("" + p.trade.tradeSheep, width / 8 + 5 * width / 12, height / 2 + 20, textPaint);
+                c.drawText("" + p.trade.inverse().tradeSheep, width / 8 + 5 * width / 12, height / 2 + 20, textPaint);
                 c.drawRect(width / 8 + 5 * width / 12 - height / 20, 3 * height / 8 - height / 20, width / 8 + 5 * width / 12 + height / 20, 3 * height / 8 + height / 20, fill);
                 c.drawRect(width / 8 + 5 * width / 12 - height / 20, 5 * height / 8 - height / 20, width / 8 + 5 * width / 12 + height / 20, 5 * height / 8 + height / 20, fill);
                 c.drawRect(width / 8 + 5 * width / 12 - height / 20, 3 * height / 8 - height / 20, width / 8 + 5 * width / 12 + height / 20, 3 * height / 8 + height / 20, boxOutline);
@@ -1250,7 +1282,7 @@ public class GameView extends View {
                 if (p.trade.tradeRock < 0) p.trade.tradeRock += 1;
             } else if (x > width / 8 + 3 * width / 12 - height / 20 && x < width / 8 + 3 * width / 12 + height / 20 && y > 5 * height / 8 - height / 20 && y < 5 * height / 8 + height / 20) {
                 if (p.trade.tradeRock + p.trade.tradeWheat + p.trade.tradeWood + p.trade.tradeSheep + p.trade.tradeBrick != (-1 * p.numResourceCards / 2) &&
-                        p.cards.get(Tile.RESOURCE_TYPE.WHEAT) >= -1 * p.trade.tradeRock + 1)
+                        p.cards.get(Tile.RESOURCE_TYPE.ROCK) >= -1 * p.trade.tradeRock + 1)
                     p.trade.tradeRock -= 1;
             } else if (x > width / 8 + 4 * width / 12 - height / 20 && x < width / 8 + 4 * width / 12 + height / 20 && y > 3 * height / 8 - height / 20 && y < 3 * height / 8 + height / 20) {
                 if (p.trade.tradeBrick < 0) p.trade.tradeBrick += 1;
@@ -1272,7 +1304,7 @@ public class GameView extends View {
         if(game.gameLogic.count3sec(time)) {
             Tile toRob = null;
             for (Tile t : game.tiles) {
-                if (t.inTile(x, y)) {
+                if (t.inTile(x, y) && t != game.gameLogic.prevRobbed) {
                     game.gameLogic.message = "Are you sure?";
                     toRob = t;
                 }
@@ -1285,9 +1317,11 @@ public class GameView extends View {
                 }
                 toRob.robbed = true;
                 game.gameLogic.prevRobbed.robbed = false;
+
             }
 
-            if (Math.sqrt(Math.pow(x - (width - height / 6 - 10), 2) + Math.pow(y - height / 2, 2)) <= height / 12 && !game.gameLogic.prevRobbed.robbed) {
+            if (Math.sqrt(Math.pow(x - (width - height / 6 - 10), 2) + Math.pow(y - height / 2, 2)) <= height / 12 && toRob != game.gameLogic.prevRobbed) {
+                game.gameLogic.prevRobbed = toRob;
                 ArrayList<Player> playersToStealFrom = new ArrayList<>();
                 for(Tile t: game.tiles){
                     if(t.robbed){
@@ -1295,7 +1329,7 @@ public class GameView extends View {
                     }
                 }
                 for(Spot s: toRob.spots){
-                    if(s._player != 0){
+                    if(s._player != 0 && s._player != game.gameLogic.currentPlayer.id && game.players[s._player-1].numResourceCards > 0){
                         playersToStealFrom.add(game.players[s._player - 1]);
                     }
                 }
@@ -1305,6 +1339,46 @@ public class GameView extends View {
                 if(playersToStealFrom.size() == 1){
                     game.gameLogic.playerToStealFrom = playersToStealFrom.get(0);
                     game.gameLogic.steal();
+                    if(game.gameLogic.usedKnightBeforeRoll){
+                            game.gameLogic.currentPlayer.rollDice();
+                            int roll = game.gameLogic.currentPlayer.roll.one + game.gameLogic.currentPlayer.roll.two;
+                            if (roll != 7) {
+                                game.giveOutResources(roll);
+                            } else {
+                                time = System.currentTimeMillis();
+                                new Thread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        while (true) {
+                                            try {
+                                                Thread.sleep(1000);
+                                                ((Activity) context).runOnUiThread(new Runnable() {
+                                                    @Override
+                                                    public void run() {
+                                                        redraw();
+                                                    }
+                                                });
+                                                if (game.gameLogic.count3sec(time)) {
+                                                    return;
+                                                }
+                                            } catch (InterruptedException e) {
+                                                e.printStackTrace();
+                                            }
+                                        }
+                                    }
+                                }).start();
+
+
+                                game.gameLogic.robbery();
+                                if (game.gameLogic.state == GameLogic.GAME_STATE.ROBBING) {
+                                    game.gameLogic.playersToRob.get(game.gameLogic.robCounter).trade = new Trade();
+                                }
+
+
+
+                        }
+                        game.gameLogic.usedKnightBeforeRoll = false;
+                    }
                 }else {
                     for (Player p : playersToStealFrom) {
                         if (p.numResourceCards > 0) {
@@ -1346,6 +1420,46 @@ public class GameView extends View {
 
         if(game.gameLogic.playerToStealFrom != null && Math.sqrt(Math.pow(x - (width - height / 6 - 10), 2) + Math.pow(y - height / 2, 2)) <= height / 12){
             game.gameLogic.steal();
+            if(game.gameLogic.usedKnightBeforeRoll){
+                    game.gameLogic.currentPlayer.rollDice();
+                    int roll = game.gameLogic.currentPlayer.roll.one + game.gameLogic.currentPlayer.roll.two;
+                    if (roll != 7) {
+                        game.giveOutResources(roll);
+                    } else {
+                        time = System.currentTimeMillis();
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                while (true) {
+                                    try {
+                                        Thread.sleep(1000);
+                                        ((Activity) context).runOnUiThread(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                redraw();
+                                            }
+                                        });
+                                        if (game.gameLogic.count3sec(time)) {
+                                            return;
+                                        }
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                            }
+                        }).start();
+
+
+                        game.gameLogic.robbery();
+                        if (game.gameLogic.state == GameLogic.GAME_STATE.ROBBING) {
+                            game.gameLogic.playersToRob.get(game.gameLogic.robCounter).trade = new Trade();
+                        }
+
+
+                    }
+
+                game.gameLogic.usedKnightBeforeRoll = false;
+            }
 
         }else {
             for (Tile t : game.tiles) {
@@ -1400,9 +1514,20 @@ public class GameView extends View {
                     p.cards.put(Tile.RESOURCE_TYPE.BRICK, p.cards.get(Tile.RESOURCE_TYPE.BRICK) + 1);
                     p.cards.put(Tile.RESOURCE_TYPE.WOOD, p.cards.get(Tile.RESOURCE_TYPE.WOOD) + 1);
                     game.gameLogic.builtSettlementNeedRoad = false;
-                    int counter = game.gameLogic.currentPlayer.id;
-                    if (counter == 4) counter = 0;
-                    game.gameLogic.currentPlayer = game.players[counter];
+                    if(game.gameLogic.snake){
+                        int counter = game.gameLogic.currentPlayer.id;
+                        if(counter > 1){
+                            game.gameLogic.currentPlayer = game.players[counter - 2];
+                        }
+                    }else{
+                        int counter = game.gameLogic.currentPlayer.id;
+                        if (counter == 4) {
+                            game.gameLogic.snake = true;
+                            counter = 3;
+                        }
+                        game.gameLogic.currentPlayer = game.players[counter];
+                    }
+
                     game.gameLogic.message = "Place a settlement Player " + game.gameLogic.currentPlayer.id;
                     if (game.gameLogic.currentPlayer.points == 2) {
                         game.gameLogic.state = GameLogic.GAME_STATE.STEADY;
@@ -1412,6 +1537,7 @@ public class GameView extends View {
                         if (roll != 7) {
                             game.giveOutResources(roll);
                         } else {
+                            game.gameLogic.message = "Player " + game.gameLogic.currentPlayer.id + " Move the Robber";
                             game.gameLogic.state = GameLogic.GAME_STATE.MOVE_ROBBER;
                         }
                     }
@@ -1502,12 +1628,16 @@ public class GameView extends View {
                 }
             }
             game.gameLogic.currentPlayer.addSettlement();
-            game.gameLogic.state = GameLogic.GAME_STATE.STEADY;
+            if(game.gameLogic.currentPlayer.points >= 10) {
+                game.gameLogic.state = GameLogic.GAME_STATE.GAME_OVER;
+            }else{
+                game.gameLogic.state = GameLogic.GAME_STATE.STEADY;
+            }
         }
     }
 
     public void onTouchPlaceRoad(float x, float y){
-        double min = sideLength * 1.5;
+        double min = sideLength * 1.75;
         Spot minSpotOne = null, minSpotTwo = null;
         double minSpotOneDistance = 0, minSpotTwoDistance = 0;
         for(Tile t: game.tiles){
@@ -1562,16 +1692,24 @@ public class GameView extends View {
                 p.cards.put(Tile.RESOURCE_TYPE.BRICK, p.cards.get(Tile.RESOURCE_TYPE.BRICK) - 1);
                 p.cards.put(Tile.RESOURCE_TYPE.WOOD, p.cards.get(Tile.RESOURCE_TYPE.WOOD) - 1);
                 game.gameLogic.state = GameLogic.GAME_STATE.STEADY;
+                game.gameLogic.message = "Its your turn Player " + game.gameLogic.currentPlayer.id;
 
                 if (game.gameLogic.longestRoad != null) {
                     if (game.gameLogic.longestRoad.longestRoad < game.gameLogic.currentPlayer.longestRoad) {
                         game.gameLogic.longestRoad.hasLongestRoad = false;
                         game.gameLogic.longestRoad.points -= 2;
                         game.gameLogic.longestRoad = game.gameLogic.currentPlayer;
-                        game.gameLogic.longestRoad.addLongestRoad();
+                        int points = game.gameLogic.longestRoad.addLongestRoad();
+                        if(points >= 10){
+                            game.gameLogic.state = GameLogic.GAME_STATE.GAME_OVER;
+                        }
                     }
                 } else if (p.longestRoad == 5) {
                     game.gameLogic.longestRoad = p;
+                    int points = game.gameLogic.longestRoad.addLongestRoad();
+                    if(points >= 10){
+                        game.gameLogic.state = GameLogic.GAME_STATE.GAME_OVER;
+                    }
                 }
             }
         }
@@ -1607,7 +1745,7 @@ public class GameView extends View {
         p.cards.put(Tile.RESOURCE_TYPE.ROCK, p.cards.get(Tile.RESOURCE_TYPE.ROCK)-1);
         p.cards.put(Tile.RESOURCE_TYPE.ROCK, p.cards.get(Tile.RESOURCE_TYPE.ROCK)-1);
         game.gameLogic.state = GameLogic.GAME_STATE.STEADY;
-        if(p.points == 10) game.gameLogic.state = GameLogic.GAME_STATE.GAME_OVER;
+        if(p.points >= 10) game.gameLogic.state = GameLogic.GAME_STATE.GAME_OVER;
     }
 
     public void drawRoads(Canvas c, Paint roadPaint){
@@ -1625,5 +1763,379 @@ public class GameView extends View {
         }
     }
 
+    public void drawUseDevCard(Paint fullBoxPaint, Paint boxOutline, Paint textPaint, Canvas c){
+        int yes = fullBoxPaint.getColor();
+        int no = Color.GRAY;
+        int count = game.gameLogic.currentPlayer.getDevCardCount(DevCards.CARD_TYPE.ROAD_BUILDING);
+        if(count == 0){
+            fullBoxPaint.setColor(no);
+        }
+        c.drawRect(width/8, height/4, 3*width/8, height/2,fullBoxPaint);
+        c.drawRect(width/8, height/4, 3*width/8, height/2,boxOutline);
+        c.drawText("Road Building", width / 4, 3*height / 8, textPaint);
+        c.drawText("" + count, width / 4, 3*height / 8 + height / 16, textPaint);
 
+        count = game.gameLogic.currentPlayer.getDevCardCount(DevCards.CARD_TYPE.MONOPOLY);
+        if(count > 0){
+            fullBoxPaint.setColor(yes);
+        }else{
+            fullBoxPaint.setColor(no);
+        }
+        c.drawRect(3*width/8, height/4, 5*width/8, height/2,fullBoxPaint);
+        c.drawRect(3*width/8, height/4, 5*width/8, height/2,boxOutline);
+        c.drawText("Monopoly", width / 2, 3*height / 8, textPaint);
+        c.drawText("" + count, width / 2, 3*height / 8 + height / 16, textPaint);
+
+        count = game.gameLogic.currentPlayer.getDevCardCount(DevCards.CARD_TYPE.YEAR_OF_PLENTY);
+        if(count > 0){
+            fullBoxPaint.setColor(yes);
+        }else{
+            fullBoxPaint.setColor(no);
+        }
+        c.drawRect(5*width/8, height/4, 7*width/8, height/2,fullBoxPaint);
+        c.drawRect(5*width/8, height/4, 7*width/8, height/2,boxOutline);
+        c.drawText("Year Of Plenty", 3*width / 4, 3*height / 8, textPaint);
+        c.drawText(""+ count, 3*width / 4, 3*height / 8 + height / 16, textPaint);
+
+
+        count = game.gameLogic.currentPlayer.getDevCardCount(DevCards.CARD_TYPE.KNIGHT);
+        if(count > 0){
+            fullBoxPaint.setColor(yes);
+        }else{
+            fullBoxPaint.setColor(no);
+        }
+        c.drawRect(1*width/8, height/2, 4*width/8, 3*height/4,fullBoxPaint);
+        c.drawRect(1*width/8, height/2, 4*width/8, 3*height/4,boxOutline);
+        c.drawText("Knight", 5*width / 16, 5*height / 8, textPaint);
+        c.drawText(""+ count, 5*width / 16, 5*height / 8 + height / 16, textPaint);
+
+        count = game.gameLogic.currentPlayer.getDevCardCount(DevCards.CARD_TYPE.VICTORY_POINT);
+        if(count > 0){
+            fullBoxPaint.setColor(yes);
+        }else{
+            fullBoxPaint.setColor(no);
+        }
+        c.drawRect(4*width/8, height/2, 7*width/8, 3*height/4,fullBoxPaint);
+        c.drawRect(4*width/8, height/2, 7*width/8, 3*height/4,boxOutline);
+        c.drawText("Victory Points", 11*width / 16, 5*height / 8, textPaint);
+        c.drawText(""+ count, 11*width / 16, 5*height / 8 + height / 16, textPaint);
+    }
+
+    public void onTouchUseDevCard(float x, float y){
+        if(x < width / 8 || x > 7*width / 8 || y < height / 4 || y > 3*height/4){
+            game.gameLogic.state = GameLogic.GAME_STATE.STEADY;
+        }else if(y < height / 2 && x < 3*width/8 && game.gameLogic.currentPlayer.getDevCardCount(DevCards.CARD_TYPE.ROAD_BUILDING) > 0){
+            game.gameLogic.state = GameLogic.GAME_STATE.ROAD_BUILDING;
+            game.gameLogic.message = "Player " + game.gameLogic.currentPlayer.id + " Build 2 Roads";
+        }else if(y < height / 2 && x < 5*width/8 && game.gameLogic.currentPlayer.getDevCardCount(DevCards.CARD_TYPE.MONOPOLY) > 0){
+            game.gameLogic.state = GameLogic.GAME_STATE.MONOPOLY;
+            game.gameLogic.message = "Select a Resource to Monopolize";
+        }else if(y < height / 2 && game.gameLogic.currentPlayer.getDevCardCount(DevCards.CARD_TYPE.YEAR_OF_PLENTY) > 0){
+            game.gameLogic.state = GameLogic.GAME_STATE.YEAR_OF_PLENTY;
+            game.gameLogic.message = "Pick 2 Resources";
+            game.gameLogic.currentPlayer.trade = new Trade();
+        }else if(y > height / 2 && x < width/2 && game.gameLogic.currentPlayer.getDevCardCount(DevCards.CARD_TYPE.KNIGHT) > 0){
+            game.gameLogic.state = GameLogic.GAME_STATE.MOVE_ROBBER;
+            game.gameLogic.message = "Player " + game.gameLogic.currentPlayer.id + " Move the Robber";
+            game.gameLogic.currentPlayer.addToLargestArmy();
+            boolean largestArmyExists = false;
+            for(Player p: game.players){
+                if(p.hasLargestArmy){
+                    largestArmyExists = true;
+                    if (game.gameLogic.currentPlayer.largestArmy > p.largestArmy){
+                        p.hasLargestArmy = false;
+                        int points = game.gameLogic.currentPlayer.addLargestArmy();
+                        if(points >= 10){
+                            game.gameLogic.state = GameLogic.GAME_STATE.GAME_OVER;
+                        }
+                    }
+                }
+            }
+            if(!largestArmyExists && game.gameLogic.currentPlayer.largestArmy == 3){
+                int points = game.gameLogic.currentPlayer.addLargestArmy();
+                if(points >= 10){
+                    game.gameLogic.state = GameLogic.GAME_STATE.GAME_OVER;
+                }
+            }
+
+
+        }
+    }
+
+    public void drawMonopoly(Paint fullBoxPaint, Paint boxOutline, Paint textPaint, Canvas c){
+        fullBoxPaint.setColor(game.tiles[0].typeToColor(Tile.RESOURCE_TYPE.WHEAT));
+        c.drawRect(5*width/40, height/4, 11*width/40, 3*height/4, fullBoxPaint);
+        c.drawRect(5*width/40, height/4, 11*width/40, 3*height/4, boxOutline);
+        c.drawText("Wheat",8*width/40, height/2, textPaint);
+
+        fullBoxPaint.setColor(game.tiles[0].typeToColor(Tile.RESOURCE_TYPE.WOOD));
+        c.drawRect(11*width/40, height/4, 17*width/40, 3*height/4, fullBoxPaint);
+        c.drawRect(11*width/40, height/4, 17*width/40, 3*height/4, boxOutline);
+        c.drawText("Wood",14*width/40, height/2, textPaint);
+
+        fullBoxPaint.setColor(game.tiles[0].typeToColor(Tile.RESOURCE_TYPE.ROCK));
+        c.drawRect(17*width/40, height/4, 23*width/40, 3*height/4, fullBoxPaint);
+        c.drawRect(17*width/40, height/4, 23*width/40, 3*height/4, boxOutline);
+        c.drawText("Rock",20*width/40, height/2, textPaint);
+
+        fullBoxPaint.setColor(game.tiles[0].typeToColor(Tile.RESOURCE_TYPE.BRICK));
+        c.drawRect(23*width/40, height/4, 29*width/40, 3*height/4, fullBoxPaint);
+        c.drawRect(23*width/40, height/4, 29*width/40, 3*height/4, boxOutline);
+        c.drawText("Brick",26*width/40, height/2, textPaint);
+
+        fullBoxPaint.setColor(game.tiles[0].typeToColor(Tile.RESOURCE_TYPE.SHEEP));
+        c.drawRect(29*width/40, height/4, 35*width/40, 3*height/4, fullBoxPaint);
+        c.drawRect(29*width/40, height/4, 35*width/40, 3*height/4, boxOutline);
+        c.drawText("Brick",32*width/40, height/2, textPaint);
+    }
+
+    public void onTouchMonopoly(float x, float y){
+        Tile.RESOURCE_TYPE t = Tile.RESOURCE_TYPE.DESERT;
+        if (y < height / 4 || y > 3*height/4 || x < width/8 || x > 7*width/8){
+            return;
+        }else if(x < 11*width/40){
+            t = Tile.RESOURCE_TYPE.WHEAT;
+        }else if(x < 17*width/40){
+            t = Tile.RESOURCE_TYPE.WOOD;
+        }else if(x < 23*width/40){
+            t = Tile.RESOURCE_TYPE.ROCK;
+        }else if(x < 29*width/40){
+            t = Tile.RESOURCE_TYPE.BRICK;
+        }else{
+            t = Tile.RESOURCE_TYPE.SHEEP;
+        }
+        int count = 0;
+        for(Player p: game.players){
+            int num = p.cards.get(t);
+            p.numResourceCards -= num;
+            count += num;
+            p.cards.put(t, 0);
+        }
+        game.gameLogic.currentPlayer.cards.put(t, count);
+        game.gameLogic.currentPlayer.numResourceCards += count;
+        game.gameLogic.state = GameLogic.GAME_STATE.STEADY;
+        game.gameLogic.message = "Its your turn Player " + game.gameLogic.currentPlayer.id;
+
+    }
+
+    public void drawYearOfPlenty(Paint fullBoxPaint, Paint boxOutline, Paint textPaint, Canvas c){
+        c.drawRect(width/8, height/4, 5*width/8, 3*height/4,fullBoxPaint);
+        c.drawRect(width/8, height/4, 5*width/8, 3*height/4,boxOutline);
+        fullBoxPaint.setColor(Color.GREEN);
+        c.drawRect(5*width/8, height/4, 7*width/8, 3*height/4,fullBoxPaint);
+        c.drawRect(5*width/8, height/4, 7*width/8, 3*height/4,boxOutline);
+        c.drawText("Accept", 3*width/4, height/2, textPaint);
+
+        Paint fill = new Paint();
+        fill.setStyle(Paint.Style.FILL_AND_STROKE);
+        Player p = game.gameLogic.currentPlayer;
+
+        fill.setColor(game.tiles[0].typeToColor(Tile.RESOURCE_TYPE.WHEAT));
+        c.drawCircle(width / 8 + width / 12, height/2, height/20, fill);
+        c.drawCircle(width / 8 + width / 12, height/2, height/20, boxOutline);
+        c.drawText("" + p.trade.tradeWheat, width/8 + width/12, height/2 + 20, textPaint);
+        c.drawRect(width/8 + 1*width/12 - height/20, 3*height/8 - height/20, width/8 + 1*width/12 + height/20,   3*height/8 + height/20 , fill);
+        c.drawRect(width/8 + 1*width/12 - height/20, 5*height/8 - height/20, width/8 + 1*width/12 + height/20,   5*height/8 + height/20 , fill);
+        c.drawRect(width/8 + 1*width/12 - height/20, 3*height/8 - height/20, width/8 + 1*width/12 + height/20,   3*height/8 + height/20 , boxOutline);
+        c.drawRect(width/8 + 1*width/12 - height/20, 5*height/8 - height/20, width/8 + 1*width/12 + height/20,   5*height/8 + height/20 , boxOutline);
+        c.drawText("+1" , width/8 + 1*width/12, 3*height/8 + 20, textPaint);
+        c.drawText("-1" , width/8 + 1*width/12, 5*height/8 + 20, textPaint);
+
+        fill.setColor(game.tiles[0].typeToColor(Tile.RESOURCE_TYPE.WOOD));
+        c.drawCircle(width / 8 + 2*width / 12, height/2, height/20, fill);
+        c.drawCircle(width / 8 + 2*width / 12, height/2, height/20, boxOutline);
+        c.drawText("" + p.trade.tradeWood, width/8 + 2*width/12, height/2 + 20, textPaint);
+        c.drawRect(width/8 + 2*width/12 - height/20, 3*height/8 - height/20, width/8 + 2*width/12 + height/20,   3*height/8 + height/20 , fill);
+        c.drawRect(width/8 + 2*width/12 - height/20, 5*height/8 - height/20, width/8 + 2*width/12 + height/20,   5*height/8 + height/20 , fill);
+        c.drawRect(width/8 + 2*width/12 - height/20, 3*height/8 - height/20, width/8 + 2*width/12 + height/20,   3*height/8 + height/20 , boxOutline);
+        c.drawRect(width/8 + 2*width/12 - height/20, 5*height/8 - height/20, width/8 + 2*width/12 + height/20,   5*height/8 + height/20 , boxOutline);
+        c.drawText("+1" , width/8 + 2*width/12, 3*height/8 + 20, textPaint);
+        c.drawText("-1" , width/8 + 2*width/12, 5*height/8 + 20, textPaint);
+
+        fill.setColor(game.tiles[0].typeToColor(Tile.RESOURCE_TYPE.ROCK));
+        c.drawCircle(width / 8 + 3*width / 12, height/2, height/20, fill);
+        c.drawCircle(width / 8 + 3*width / 12, height/2, height/20, boxOutline);
+        c.drawText("" + p.trade.tradeRock, width/8 + 3*width/12, height/2 + 20, textPaint);
+        c.drawRect(width/8 + 3*width/12 - height/20, 3*height/8 - height/20, width/8 + 3*width/12 + height/20,   3*height/8 + height/20 , fill);
+        c.drawRect(width/8 + 3*width/12 - height/20, 5*height/8 - height/20, width/8 + 3*width/12 + height/20,   5*height/8 + height/20 , fill);
+        c.drawRect(width/8 + 3*width/12 - height/20, 3*height/8 - height/20, width/8 + 3*width/12 + height/20,   3*height/8 + height/20 , boxOutline);
+        c.drawRect(width/8 + 3*width/12 - height/20, 5*height/8 - height/20, width/8 + 3*width/12 + height/20,   5*height/8 + height/20 , boxOutline);
+        c.drawText("+1" , width/8 + 3*width/12, 3*height/8 + 20, textPaint);
+        c.drawText("-1" , width/8 + 3*width/12, 5*height/8 + 20, textPaint);
+
+        fill.setColor(game.tiles[0].typeToColor(Tile.RESOURCE_TYPE.BRICK));
+        c.drawCircle(width / 8 + 4*width / 12, height/2, height/20, fill);
+        c.drawCircle(width / 8 + 4*width / 12, height/2, height/20, boxOutline);
+        c.drawText("" + p.trade.tradeBrick, width/8 + 4*width/12, height/2 + 20, textPaint);
+        c.drawRect(width/8 + 4*width/12 - height/20, 3*height/8 - height/20, width/8 + 4*width/12 + height/20,   3*height/8 + height/20 , fill);
+        c.drawRect(width/8 + 4*width/12 - height/20, 5*height/8 - height/20, width/8 + 4*width/12 + height/20,   5*height/8 + height/20 , fill);
+        c.drawRect(width/8 + 4*width/12 - height/20, 3*height/8 - height/20, width/8 + 4*width/12 + height/20,   3*height/8 + height/20 , boxOutline);
+        c.drawRect(width/8 + 4*width/12 - height/20, 5*height/8 - height/20, width/8 + 4*width/12 + height/20,   5*height/8 + height/20 , boxOutline);
+        c.drawText("+1" , width/8 + 4*width/12, 3*height/8 + 20, textPaint);
+        c.drawText("-1" , width/8 + 4*width/12, 5*height/8 + 20, textPaint);
+
+        fill.setColor(game.tiles[0].typeToColor(Tile.RESOURCE_TYPE.SHEEP));
+        c.drawCircle(width / 8 + 5*width / 12, height/2, height/20, fill);
+        c.drawCircle(width / 8 + 5*width / 12, height/2, height/20, boxOutline);
+        c.drawText("" + p.trade.tradeSheep, width/8 + 5*width/12, height/2 + 20, textPaint);
+        c.drawRect(width/8 + 5*width/12 - height/20, 3*height/8 - height/20, width/8 + 5*width/12 + height/20,   3*height/8 + height/20 , fill);
+        c.drawRect(width/8 + 5*width/12 - height/20, 5*height/8 - height/20, width/8 + 5*width/12 + height/20,   5*height/8 + height/20 , fill);
+        c.drawRect(width/8 + 5*width/12 - height/20, 3*height/8 - height/20, width/8 + 5*width/12 + height/20,   3*height/8 + height/20 , boxOutline);
+        c.drawRect(width/8 + 5*width/12 - height/20, 5*height/8 - height/20, width/8 + 5*width/12 + height/20,   5*height/8 + height/20 , boxOutline);
+        c.drawText("+1" , width/8 + 5*width/12, 3*height/8 + 20, textPaint);
+        c.drawText("-1" , width/8 + 5*width/12, 5*height/8 + 20, textPaint);
+
+    }
+
+    public void onTouchYearOfPlenty(float x, float y){
+        Player p = game.gameLogic.currentPlayer;
+        int total = p.trade.tradeBrick + p.trade.tradeWheat + p.trade.tradeRock + p.trade.tradeSheep + p.trade.tradeWood;
+        if(x> 5*width/8 && x< 7*width/8 && y > height/4 && y < 3 * height / 4 && total == 2){
+            Trade t = p.trade;
+            game.gameLogic.currentPlayer.cards.put(Tile.RESOURCE_TYPE.WHEAT,game.gameLogic.currentPlayer.cards.get(Tile.RESOURCE_TYPE.WHEAT) + t.tradeWheat);
+            game.gameLogic.currentPlayer.cards.put(Tile.RESOURCE_TYPE.WOOD,game.gameLogic.currentPlayer.cards.get(Tile.RESOURCE_TYPE.WOOD) + t.tradeWood);
+            game.gameLogic.currentPlayer.cards.put(Tile.RESOURCE_TYPE.BRICK,game.gameLogic.currentPlayer.cards.get(Tile.RESOURCE_TYPE.BRICK) + t.tradeBrick);
+            game.gameLogic.currentPlayer.cards.put(Tile.RESOURCE_TYPE.ROCK,game.gameLogic.currentPlayer.cards.get(Tile.RESOURCE_TYPE.ROCK) + t.tradeRock);
+            game.gameLogic.currentPlayer.cards.put(Tile.RESOURCE_TYPE.SHEEP,game.gameLogic.currentPlayer.cards.get(Tile.RESOURCE_TYPE.SHEEP) + t.tradeSheep);
+            game.gameLogic.state = GameLogic.GAME_STATE.STEADY;
+            game.gameLogic.message = "Its your turn Player " + game.gameLogic.currentPlayer.id;
+        }else if(x > width/8 + 1*width/12 - height / 20 &&  x < width/8 + 1*width/12 + height/20 && y >3*height/8 - height/20 && y < 3*height/8 + height/20 && total < 2){
+            p.trade.tradeWheat += 1;
+        }else if(x > width/8 + 1*width/12 - height / 20 &&  x < width/8 + 1*width/12 + height/20 && y >5*height/8 - height/20 && y < 5*height/8 + height/20 && p.trade.tradeWheat > 0){
+            p.trade.tradeWheat -= 1;
+        }else if(x > width/8 + 2*width/12 - height / 20 &&  x < width/8 + 2*width/12 + height/20 && y >3*height/8 - height/20 && y < 3*height/8 + height/20 && total < 2){
+            p.trade.tradeWood += 1;
+        }else if(x > width/8 + 2*width/12 - height / 20 &&  x < width/8 + 2*width/12 + height/20 && y >5*height/8 - height/20 && y < 5*height/8 + height/20&& p.trade.tradeWood > 0){
+            p.trade.tradeWood -= 1;
+        }else if(x > width/8 + 3*width/12 - height / 20 &&  x < width/8 + 3*width/12 + height/20 && y >3*height/8 - height/20 && y < 3*height/8 + height/20 && total < 2){
+            p.trade.tradeRock += 1;
+        }else if(x > width/8 + 3*width/12 - height / 20 &&  x < width/8 + 3*width/12 + height/20 && y >5*height/8 - height/20 && y < 5*height/8 + height/20 && p.trade.tradeRock > 0){
+            p.trade.tradeRock -= 1;
+        }else if(x > width/8 + 4*width/12 - height / 20 &&  x < width/8 + 4*width/12 + height/20 && y >3*height/8 - height/20 && y < 3*height/8 + height/20 && total < 2){
+            p.trade.tradeBrick += 1;
+        }else if(x > width/8 + 4*width/12 - height / 20 &&  x < width/8 + 4*width/12 + height/20 && y >5*height/8 - height/20 && y < 5*height/8 + height/20 && p.trade.tradeBrick > 0){
+            p.trade.tradeBrick -= 1;
+        }else if(x > width/8 + 5*width/12 - height / 20 &&  x < width/8 + 5*width/12 + height/20 && y >3*height/8 - height/20 && y < 3*height/8 + height/20 && total < 2){
+            p.trade.tradeSheep += 1;
+        }else if(x > width/8 + 5*width/12 - height / 20 &&  x < width/8 + 5*width/12 + height/20 && y >5*height/8 - height/20 && y < 5*height/8 + height/20 && p.trade.tradeSheep > 0){
+            p.trade.tradeSheep -= 1;
+        }
+    }
+
+    public void onTouchRoadBuilding(float x, float y){
+        int wood = game.gameLogic.currentPlayer.cards.get(Tile.RESOURCE_TYPE.WOOD);
+        onTouchPlaceRoad(x,y);
+        if(game.gameLogic.currentPlayer.cards.get(Tile.RESOURCE_TYPE.WOOD) < wood){
+            game.gameLogic.devCards.road_counter++;
+        }
+        if(game.gameLogic.devCards.road_counter > 2){
+            game.gameLogic.devCards.road_counter = 1;
+            game.gameLogic.state = GameLogic.GAME_STATE.STEADY;
+            game.gameLogic.message = "Its your turn Player " + game.gameLogic.currentPlayer.id;
+        }
+    }
+
+    public void onTouchGameOver(float x, float y){
+        if(x > 5*width/12&& x <8*width/12 && y > height/2 && y < 3*height/4){
+            Intent homeIntent = new Intent(context, MainActivity.class);
+            context.startActivity(homeIntent);
+        }
+    }
+
+    public void drawGameOver(Paint fullBoxPaint, Paint boxOutline, Paint textPaint, Canvas c){
+        Player winner = game.players[0];
+        for(Player p: game.players){
+            if(p.points > winner.points){
+                winner = p;
+            }
+        }
+        c.drawRect(width / 4, height / 4, 3*width/4, 3*height/4, fullBoxPaint);
+        c.drawRect(width / 4, height / 4, 3*width/4, 3*height/4, boxOutline);
+        c.drawText("Congratulations Player "+ winner.id + " Wins!", width/2, 3*height/8, textPaint);
+
+        c.drawRect(5*width/12, height/2 , 8*width/12, 3*height/4, boxOutline);
+        c.drawText("Ok", width/2, 5*height/8, textPaint);
+    }
+
+    public void drawAskKnight(Paint fullBoxPaint, Paint boxOutline, Paint textPaint, Canvas c){
+        c.drawRect(width/4, height/4, 3*width/4, height/2, fullBoxPaint);
+        c.drawRect(width/4, height/4, 3*width/4, height/2, boxOutline);
+        c.drawText("Do you want to play your Knight?", width/2, 3*height/8, textPaint);
+
+        c.drawRect(width/4, height/2, width/2, 3*height/4, fullBoxPaint);
+        c.drawRect(width/4, height/2, width/2, 3*height/4, boxOutline);
+        c.drawText("Yes", 3*width/8, 5*height/8, textPaint);
+
+        c.drawRect(width/2, height/2, 3*width/4, 3*height/4, fullBoxPaint);
+        c.drawRect(width/2, height/2, 3*width/4, 3*height/4, boxOutline);
+        c.drawText("No", 5*width/8, 5*height/8, textPaint);
+
+    }
+
+    public void onTouchAskKnight(float x, float y){
+        if(x < width / 2 && x > width/4 && y > height/2 && y < 3*height/4){
+            game.gameLogic.state = GameLogic.GAME_STATE.MOVE_ROBBER;
+            game.gameLogic.usedKnightBeforeRoll = true;
+            game.gameLogic.message = "Player " + game.gameLogic.currentPlayer.id + " Move the Robber";
+            game.gameLogic.currentPlayer.addToLargestArmy();
+            boolean largestArmyExists = false;
+            for(Player p: game.players){
+                if(p.hasLargestArmy){
+                    largestArmyExists = true;
+                    if (game.gameLogic.currentPlayer.largestArmy > p.largestArmy){
+                        p.hasLargestArmy = false;
+                        int points = game.gameLogic.currentPlayer.addLargestArmy();
+                        if(points >= 10){
+                            game.gameLogic.state = GameLogic.GAME_STATE.GAME_OVER;
+                        }
+                    }
+                }
+            }
+            if(!largestArmyExists && game.gameLogic.currentPlayer.largestArmy == 3){
+                int points = game.gameLogic.currentPlayer.addLargestArmy();
+                if(points >= 10){
+                    game.gameLogic.state = GameLogic.GAME_STATE.GAME_OVER;
+                }
+            }
+        }else if(x > width / 2 && x < 3*width/4 && y > height/2 && y < 3*height/4){
+            game.gameLogic.state = GameLogic.GAME_STATE.STEADY;
+            game.gameLogic.currentPlayer.rollDice();
+            int roll = game.gameLogic.currentPlayer.roll.one + game.gameLogic.currentPlayer.roll.two;
+            if (roll != 7) {
+                game.giveOutResources(roll);
+            } else {
+                time = System.currentTimeMillis();
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        while (true) {
+                            try {
+                                Thread.sleep(1000);
+                                ((Activity) context).runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        redraw();
+                                    }
+                                });
+                                if (game.gameLogic.count3sec(time)) {
+                                    return;
+                                }
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                }).start();
+
+
+                game.gameLogic.robbery();
+                if (game.gameLogic.state == GameLogic.GAME_STATE.ROBBING) {
+                    game.gameLogic.playersToRob.get(game.gameLogic.robCounter).trade = new Trade();
+                }
+
+
+            }
+        }
+
+    }
 }
