@@ -1,4 +1,4 @@
-package com.farmerma.afinal;
+package edu.unc.cs.haydenl.game;
 
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -18,6 +18,7 @@ public class Dice {
         p = owner;
         one = (int) (Math.random()*6 + 1);
         two = (int) (Math.random()*6 + 1);
+
 
     }
 

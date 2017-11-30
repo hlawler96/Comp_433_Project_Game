@@ -1,4 +1,4 @@
-package com.farmerma.afinal;
+package edu.unc.cs.haydenl.game;
 
 /**
  * Created by hayden on 11/23/17.

@@ -1,10 +1,7 @@
-package com.farmerma.afinal;
+package edu.unc.cs.haydenl.game;
 
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.BitmapShader;
 import android.graphics.Color;
-import android.graphics.Shader;
+import android.util.Log;
 
 /**
  * Created by hayden on 10/9/17.
@@ -15,7 +12,7 @@ public class Tile {
     public enum RESOURCE_TYPE {WHEAT, ROCK, BRICK, SHEEP, WOOD, DESERT}
     public Spot[] spots;
     public RESOURCE_TYPE type;
-    public int color, counter, number, backG;
+    public int color, counter, number;
     public boolean robbed;
 
     public Tile(RESOURCE_TYPE t) {

@@ -1,6 +1,7 @@
-package com.farmerma.afinal;
+package edu.unc.cs.haydenl.game;
 
 import android.graphics.Color;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -13,14 +14,14 @@ public class Player {
 
     int points, settlements, cities, id, developmentCards, longestRoad, largestArmy, numResourceCards;
     ArrayList<Integer> numbers;
-    boolean hasLongestRoad, hasLargestArmy;
+    boolean hasLongestRoad, hasLargestArmy, playedDevCardThisTurn;
     HashMap<Tile.RESOURCE_TYPE, Integer> cards;
     ArrayList<Tile.RESOURCE_TYPE> ports;
     int color;
     Trade trade;
     Dice roll;
     ArrayList<Road> roads;
-    ArrayList<DevCards.CARD_TYPE> devCards;
+    ArrayList<DevCards.CARD_TYPE> devCards, newDevCards;
 
     public Player(int playerNum){
         id = playerNum;
@@ -47,8 +48,10 @@ public class Player {
         trade = null;
         roll = new Dice(this);
         devCards = new ArrayList<>();
+        newDevCards = new ArrayList<>();
         ports = new ArrayList<>();
         roads = new ArrayList<>();
+        playedDevCardThisTurn = false;
     }
 
     public void addResource(Tile.RESOURCE_TYPE type){
@@ -58,13 +61,8 @@ public class Player {
         }
     }
 
-    public void useResource(Tile.RESOURCE_TYPE type) {
-        cards.put(type, cards.get(type) - 1);
-        numResourceCards--;
-    }
-
     public void addDevCard(DevCards.CARD_TYPE card){
-        devCards.add(card);
+        newDevCards.add(card);
         developmentCards ++;
         cards.put(Tile.RESOURCE_TYPE.SHEEP, cards.get(Tile.RESOURCE_TYPE.SHEEP) - 1);
         cards.put(Tile.RESOURCE_TYPE.ROCK, cards.get(Tile.RESOURCE_TYPE.ROCK) - 1);
@@ -73,10 +71,7 @@ public class Player {
 
     public void useDevCard(DevCards.CARD_TYPE card){
         devCards.remove(devCards.indexOf(card));
-    }
-
-    public boolean hasDevCard(DevCards.CARD_TYPE card){
-        return devCards.contains(card);
+        playedDevCardThisTurn = true;
     }
 
     public int addSettlement(){
@@ -127,7 +122,7 @@ public class Player {
     }
 
     public boolean canBuildCity(){
-        return cards.get(Tile.RESOURCE_TYPE.ROCK) >= 3 && cards.get(Tile.RESOURCE_TYPE.WHEAT) >= 2 && settlements > cities && cities < 4;
+        return cards.get(Tile.RESOURCE_TYPE.ROCK) >= 3 && cards.get(Tile.RESOURCE_TYPE.WHEAT) >= 2 && settlements >= cities && cities < 4;
     }
 
     public boolean canBuildDevCard(){
@@ -136,6 +131,7 @@ public class Player {
     }
 
     public boolean hasEnoughResources(Trade t){
+        Log.v("DEBUG_TAG", "Trade: " + trade.toString() + " Player has : " + this.cards.toString());
         if(t.tradeBrick <= cards.get(Tile.RESOURCE_TYPE.BRICK) &&
                 t.tradeRock <= cards.get(Tile.RESOURCE_TYPE.ROCK) &&
                 t.tradeWood <= cards.get(Tile.RESOURCE_TYPE.WOOD) &&
@@ -144,6 +140,17 @@ public class Player {
             return true;
         }else {
             return false;
+        }
+    }
+
+    public void addPorts(Port[] ports){
+        for(Port p: ports){
+            if(p.left._player == id || p.right._player == id){
+                if(!this.ports.contains(p.type)) {
+                    this.ports.add(p.type);
+                    Log.v("DEBUG_TAG", "Player " + id + " has a port of type " + p.type);
+                }
+            }
         }
     }
 
@@ -156,19 +163,19 @@ public class Player {
         if(trade.tradeRock > 0){
             pos += trade.tradeRock;
         }else if (ports.contains(Tile.RESOURCE_TYPE.ROCK)){
-            if(trade.tradeRock%2 == 1){
+            if(trade.inverse().tradeRock % 2 == 1){
                 return false;
             }else{
                 neg += trade.tradeRock / 2;
             }
         }else if( ports.contains(Tile.RESOURCE_TYPE.DESERT)){
-            if(trade.tradeRock%3 != 0){
+            if(trade.inverse().tradeRock%3 != 0){
                 return false;
             }else{
                 neg += trade.tradeRock / 3;
             }
         }else{
-            if(trade.tradeRock % 4 != 0){
+            if(trade.inverse().tradeRock % 4 != 0){
                 return false;
             }else {
                 neg += trade.tradeRock / 4;
@@ -178,19 +185,19 @@ public class Player {
         if(trade.tradeBrick > 0){
             pos += trade.tradeBrick;
         }else if (ports.contains(Tile.RESOURCE_TYPE.BRICK)){
-            if(trade.tradeBrick%2 == 1){
+            if(trade.inverse().tradeBrick%2 == 1){
                 return false;
             }else{
                 neg += trade.tradeBrick / 2;
             }
         }else if( ports.contains(Tile.RESOURCE_TYPE.DESERT)){
-            if(trade.tradeBrick%3 != 0){
+            if(trade.inverse().tradeBrick%3 != 0){
                 return false;
             }else{
                 neg += trade.tradeBrick / 3;
             }
         }else{
-            if(trade.tradeBrick % 4 != 0){
+            if(trade.inverse().tradeBrick % 4 != 0){
                 return false;
             }else {
                 neg += trade.tradeBrick / 4;
@@ -200,19 +207,19 @@ public class Player {
         if(trade.tradeSheep > 0){
             pos += trade.tradeSheep;
         }else if (ports.contains(Tile.RESOURCE_TYPE.SHEEP)){
-            if(trade.tradeSheep%2 == 1){
+            if(trade.inverse().tradeSheep%2 == 1){
                 return false;
             }else{
                 neg += trade.tradeSheep / 2;
             }
         }else if( ports.contains(Tile.RESOURCE_TYPE.DESERT)){
-            if(trade.tradeSheep%3 != 0){
+            if(trade.inverse().tradeSheep%3 != 0){
                 return false;
             }else{
                 neg += trade.tradeSheep / 3;
             }
         }else{
-            if(trade.tradeSheep % 4 != 0){
+            if(trade.inverse().tradeSheep % 4 != 0){
                 return false;
             }else {
                 neg += trade.tradeSheep / 4;
@@ -222,19 +229,19 @@ public class Player {
         if(trade.tradeWood > 0){
             pos += trade.tradeWood;
         }else if (ports.contains(Tile.RESOURCE_TYPE.WOOD)){
-            if(trade.tradeWood%2 == 1){
+            if(trade.inverse().tradeWood%2 == 1){
                 return false;
             }else{
                 neg += trade.tradeWood / 2;
             }
         }else if( ports.contains(Tile.RESOURCE_TYPE.DESERT)){
-            if(trade.tradeWood%3 != 0){
+            if(trade.inverse().tradeWood%3 != 0){
                 return false;
             }else{
                 neg += trade.tradeWood / 3;
             }
         }else{
-            if(trade.tradeWood % 4 != 0){
+            if(trade.inverse().tradeWood % 4 != 0){
                 return false;
             }else {
                 neg += trade.tradeWood / 4;
@@ -244,25 +251,26 @@ public class Player {
         if(trade.tradeWheat > 0){
             pos += trade.tradeWheat;
         }else if (ports.contains(Tile.RESOURCE_TYPE.WHEAT)){
-            if(trade.tradeWheat%2 == 1){
+            if(trade.inverse().tradeWheat%2 == 1){
                 return false;
             }else{
                 neg += trade.tradeWheat / 2;
             }
         }else if( ports.contains(Tile.RESOURCE_TYPE.DESERT)){
-            if(trade.tradeWheat%3 != 0){
+            if(trade.inverse().tradeWheat%3 != 0){
                 return false;
             }else{
                 neg += trade.tradeWheat / 3;
             }
         }else{
-            if(trade.tradeWheat % 4 != 0){
+            if(trade.inverse().tradeWheat % 4 != 0){
                 return false;
             }else {
                 neg += trade.tradeWheat / 4;
             }
         }
-
+        Log.v("DEBUG_TAG", "Pos: " + pos + " , Neg: " + neg);
+        if(hasEnoughResources(trade.inverse()))
         if(pos == (-1*neg))return true;
 
         return false;
@@ -305,9 +313,32 @@ public class Player {
         return max;
     }
 
+    public int getDevCardCount(DevCards.CARD_TYPE type){
+        int count = 0;
+        for(DevCards.CARD_TYPE t: devCards){
+            if(t == type) count ++;
+        }
+        for(DevCards.CARD_TYPE t: newDevCards){
+            if(t == type) count ++;
+        }
+        return count;
+    }
 
+    public int getUsableDevCardCount(DevCards.CARD_TYPE type){
+        int count = 0;
+        for(DevCards.CARD_TYPE t: devCards){
+            if(t == type) count ++;
+        }
+        return count;
+    }
 
-
+    public void moveOldDevCards(){
+        for(DevCards.CARD_TYPE type: newDevCards){
+            devCards.add(type);
+        }
+        newDevCards.clear();
+        playedDevCardThisTurn = false;
+    }
 
 
 }

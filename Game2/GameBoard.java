@@ -1,4 +1,4 @@
-package com.farmerma.afinal;
+package edu.unc.cs.haydenl.game;
 
 import android.graphics.Color;
 import android.service.quicksettings.TileService;

@@ -1,4 +1,4 @@
-package com.farmerma.afinal;
+package edu.unc.cs.haydenl.game;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -11,7 +11,7 @@ public class DevCards {
 
     public enum CARD_TYPE {ROAD_BUILDING , MONOPOLY , KNIGHT, YEAR_OF_PLENTY, VICTORY_POINT}
     public ArrayList<CARD_TYPE> cards;
-    public int size;
+    public int size, road_counter;
 
     public DevCards(){
         cards = new ArrayList<>();
@@ -42,6 +42,7 @@ public class DevCards {
         cards.add(CARD_TYPE.VICTORY_POINT);
         Collections.shuffle(cards);
         size = cards.size();
+        road_counter = 1;
     }
 
     public CARD_TYPE getCard(){
