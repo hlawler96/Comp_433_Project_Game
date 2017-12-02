@@ -90,7 +90,7 @@ public class GameLogic {
     public void getBestOffer(){
 
             for(Player offer: playersInTrade){
-                if(offer.trade.equals(currentPlayer.trade.inverse()) && offer.trade.isValid(currentPlayer)){
+                if(offer.trade.equals(currentPlayer.trade.inverse()) && offer.trade.isValid(currentPlayer) && offer.trade.accept){
                     playerToTradeWith = offer;
                     return;
 
@@ -138,11 +138,18 @@ public class GameLogic {
     public void steal(){
         if(playerToStealFrom.numResourceCards > 0) {
             int cardToSteal = (int) (Math.random() * playerToStealFrom.numResourceCards + 1);
+            Log.v("DEBUG_TAG", "CardToSteal = " + cardToSteal);
 
             Tile.RESOURCE_TYPE typeToSteal = Tile.RESOURCE_TYPE.BRICK;
             if (cardToSteal <= playerToStealFrom.cards.get(typeToSteal)) {
                     currentPlayer.cards.put(typeToSteal, currentPlayer.cards.get(typeToSteal) + 1);
                     playerToStealFrom.cards.put(typeToSteal, playerToStealFrom.cards.get(typeToSteal) - 1);
+                    state = GAME_STATE.STEADY;
+                    message = "Its your turn Player " + currentPlayer.id;
+                    playerToStealFrom.numResourceCards --;
+                    currentPlayer.numResourceCards++;
+                    playerToStealFrom = null;
+                    return;
             }else {
                 cardToSteal -= playerToStealFrom.cards.get(typeToSteal);
             }
@@ -151,6 +158,12 @@ public class GameLogic {
             if (cardToSteal <= playerToStealFrom.cards.get(typeToSteal)) {
                 currentPlayer.cards.put(typeToSteal, currentPlayer.cards.get(typeToSteal) + 1);
                 playerToStealFrom.cards.put(typeToSteal, playerToStealFrom.cards.get(typeToSteal) - 1);
+                state = GAME_STATE.STEADY;
+                message = "Its your turn Player " + currentPlayer.id;
+                playerToStealFrom.numResourceCards --;
+                currentPlayer.numResourceCards++;
+                playerToStealFrom = null;
+                return;
             }else {
                 cardToSteal -= playerToStealFrom.cards.get(typeToSteal);
             }
@@ -159,6 +172,12 @@ public class GameLogic {
             if (cardToSteal <= playerToStealFrom.cards.get(typeToSteal)) {
                 currentPlayer.cards.put(typeToSteal, currentPlayer.cards.get(typeToSteal) + 1);
                 playerToStealFrom.cards.put(typeToSteal, playerToStealFrom.cards.get(typeToSteal) - 1);
+                state = GAME_STATE.STEADY;
+                message = "Its your turn Player " + currentPlayer.id;
+                playerToStealFrom.numResourceCards --;
+                currentPlayer.numResourceCards++;
+                playerToStealFrom = null;
+                return;
             }else {
                 cardToSteal -= playerToStealFrom.cards.get(typeToSteal);
             }
@@ -167,18 +186,25 @@ public class GameLogic {
             if (cardToSteal <= playerToStealFrom.cards.get(typeToSteal)) {
                 currentPlayer.cards.put(typeToSteal, currentPlayer.cards.get(typeToSteal) + 1);
                 playerToStealFrom.cards.put(typeToSteal, playerToStealFrom.cards.get(typeToSteal) - 1);
+                state = GAME_STATE.STEADY;
+                message = "Its your turn Player " + currentPlayer.id;
+                playerToStealFrom.numResourceCards --;
+                currentPlayer.numResourceCards++;
+                playerToStealFrom = null;
+                return;
             }else {
                 typeToSteal = Tile.RESOURCE_TYPE.ROCK;
                 currentPlayer.cards.put(typeToSteal, currentPlayer.cards.get(typeToSteal) + 1);
                 playerToStealFrom.cards.put(typeToSteal, playerToStealFrom.cards.get(typeToSteal) - 1);
+                state = GAME_STATE.STEADY;
+                message = "Its your turn Player " + currentPlayer.id;
+                playerToStealFrom.numResourceCards --;
+                currentPlayer.numResourceCards++;
+                playerToStealFrom = null;
+                return;
             }
 
         }
-        state = GAME_STATE.STEADY;
-        message = "Its your turn Player " + currentPlayer.id;
-        playerToStealFrom.numResourceCards --;
-        currentPlayer.numResourceCards++;
-        playerToStealFrom = null;
     }
 
     public boolean count3sec(long initTime){

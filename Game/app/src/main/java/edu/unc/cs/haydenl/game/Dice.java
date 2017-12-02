@@ -19,6 +19,7 @@ public class Dice {
         one = (int) (Math.random()*6 + 1);
         two = (int) (Math.random()*6 + 1);
 
+
     }
 
     public void draw(Canvas c, int width, int height){

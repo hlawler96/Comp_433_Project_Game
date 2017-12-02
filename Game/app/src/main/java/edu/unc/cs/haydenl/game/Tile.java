@@ -70,20 +70,46 @@ public class Tile {
         int color;
         if(t == RESOURCE_TYPE.WOOD){
             color = Color.rgb(160,82,45);
+
         }else if(t == RESOURCE_TYPE.BRICK){
             color = Color.RED;
+
         }else if(t == RESOURCE_TYPE.WHEAT){
             color = Color.YELLOW;
+
+
         }else if(t == RESOURCE_TYPE.ROCK) {
             color = Color.GRAY;
+
         }else if(t == RESOURCE_TYPE.SHEEP) {
             color = Color.GREEN;
+
+
+
         }else if (t == RESOURCE_TYPE.DESERT){
+
+
             color = Color.rgb(255,222,173);
         }else{
             color = Color.WHITE;
         }
         return color;
+    }
+
+    public int typeToImage(){
+        if(type == RESOURCE_TYPE.DESERT){
+            return R.drawable.desert5;
+        }else if(type == RESOURCE_TYPE.ROCK){
+            return R.drawable.mountains5;
+        }else if(type == RESOURCE_TYPE.BRICK){
+            return R.drawable.quarry5;
+        }else if(type == RESOURCE_TYPE.SHEEP){
+            return R.drawable.sheep5;
+        }else if(type == RESOURCE_TYPE.WOOD){
+            return R.drawable.forest5;
+        }else{
+            return R.drawable.wheat5;
+        }
     }
 
     public boolean inTile(float x, float y){
