@@ -30,19 +30,15 @@ import java.util.ArrayList;
  * Created by hayden on 10/9/17.
  *
  * TODO:
- * Hayden
- * - able to change number of players?
- *
- * For git posting
+
+ * For future
  * - refactor all variables to be Camel case
  * - try and reduce amount of redundant code
  * - get rid of all unused code
- * -
- *
- * Mason
- * - Get images for tiles
- * - Get images for settlements/cities
- * - Change player boxes to be less wordy
+ * - able to change number of players?
+ * - settings menu after initial play
+ *  * - Change player boxes to be less wordy
+
  */
 @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
 public class GameView extends View {
@@ -117,7 +113,8 @@ public class GameView extends View {
             int dx = (int) Math.round(sideLength*Math.cos(0.523599));
             int dy = (int) Math.round(sideLength*Math.sin(0.523599));
             int startX = width/2 - 2*dx;
-            int startY = (int) (height / 2 - 1.1*(3*dy + 2.5*sideLength));
+
+            int startY = (int) (height / 2 - (3*dy + 2.5*sideLength) - (height - (11*height/12 - height/36))/4);
             game.giveTilesCoords(startX,startY,3,sideLength,dx,dy);
             game.giveTilesCoords(startX-dx, startY + dy + sideLength,4, sideLength,dx,dy);
             game.giveTilesCoords(startX-2*dx, startY + 2*dy + 2*sideLength,5, sideLength,dx,dy);
@@ -159,7 +156,7 @@ public class GameView extends View {
             }else if(x > width / 2 && y < height / 2 && game.gameLogic.currentPlayer.canBuildCity()){
                 game.gameLogic.state = GameLogic.GAME_STATE.PLACE_CITY;
                 game.gameLogic.message = "Place a City";
-            }else if(x < width / 2 && y < height / 2 && game.gameLogic.currentPlayer.canBuildSettlement()){
+            }else if(x < width / 2 && y < height / 2 && game.gameLogic.currentPlayer.canBuildSettlement() && game.gameLogic.currentPlayer.canBuildSettlement(game.tiles, sideLength)){
                 game.gameLogic.state = GameLogic.GAME_STATE.PLACE_SETTLEMENT;
                 game.gameLogic.message = "Place a Settlement";
             }else if(x > width / 2 && y > height / 2 && game.gameLogic.currentPlayer.canBuildRoad()){
@@ -820,7 +817,7 @@ public class GameView extends View {
     }
 
     public void drawMenuBuild(Paint fullBoxPaint, Paint boxOutline, Paint textPaint, Canvas c){
-        if(game.gameLogic.currentPlayer.canBuildSettlement()){
+        if(game.gameLogic.currentPlayer.canBuildSettlement() && game.gameLogic.currentPlayer.canBuildSettlement(game.tiles, sideLength)){
             fullBoxPaint.setColor(Color.rgb(222,184,135));
         }else{
             fullBoxPaint.setColor(Color.GRAY);
@@ -1403,7 +1400,9 @@ public class GameView extends View {
 
 
                 }
+
             }
+
         }
     }
 
@@ -1811,7 +1810,7 @@ public class GameView extends View {
             if (min < sideLength * 1.5) {
                 for (Tile t : game.tiles) {
                     for (Spot s : t.spots) {
-                        if (Math.sqrt(Math.pow(s.x - minSpot.x, 2) + Math.pow(s.y - minSpot.y, 2)) <= sideLength && s._player != 0) {
+                        if (Math.sqrt(Math.pow(s.x - minSpot.x, 2) + Math.pow(s.y - minSpot.y, 2)) <= (1.2* sideLength) && s._player != 0) {
                             game.gameLogic.message = "Can't settle there";
                             return;
                         }
@@ -1853,8 +1852,13 @@ public class GameView extends View {
                 }
             }
         }
+
         ArrayList<Spot> spotsToSettle = new ArrayList<>();
         if (min < sideLength * 1.5) {
+            if(!game.gameLogic.currentPlayer.canBuildSettlementHere(minSpot, game.tiles, sideLength)){
+                game.gameLogic.message = "Can't settle there";
+                return;
+            }
             for (Tile t : game.tiles) {
                 for (Spot s : t.spots) {
                     if (Math.sqrt(Math.pow(s.x - minSpot.x, 2) + Math.pow(s.y - minSpot.y, 2)) <= sideLength && s._player != 0) {
@@ -1868,8 +1872,8 @@ public class GameView extends View {
             }
 
             for (Spot s : spotsToSettle) {
-                for(Port p: game.ports){
-                    if (p._x == s.x && p._y == s.y && !game.gameLogic.currentPlayer.ports.contains(p.type)){
+                for (Port p : game.ports) {
+                    if (p._x == s.x && p._y == s.y && !game.gameLogic.currentPlayer.ports.contains(p.type)) {
                         game.gameLogic.currentPlayer.ports.add(p.type);
                     }
                 }
@@ -1879,6 +1883,14 @@ public class GameView extends View {
                 }
             }
             game.gameLogic.currentPlayer.addSettlement();
+            if(game.gameLogic.currentPlayer.points > 2){
+                Player p = game.gameLogic.currentPlayer;
+                p.cards.put(Tile.RESOURCE_TYPE.SHEEP, p.cards.get(Tile.RESOURCE_TYPE.SHEEP) - 1);
+                p.cards.put(Tile.RESOURCE_TYPE.WOOD, p.cards.get(Tile.RESOURCE_TYPE.WOOD) - 1);
+                p.cards.put(Tile.RESOURCE_TYPE.BRICK, p.cards.get(Tile.RESOURCE_TYPE.BRICK) - 1);
+                p.cards.put(Tile.RESOURCE_TYPE.WHEAT, p.cards.get(Tile.RESOURCE_TYPE.WHEAT) - 1);
+
+            }
             if(game.gameLogic.currentPlayer.points >= 10) {
                 game.gameLogic.state = GameLogic.GAME_STATE.GAME_OVER;
             }else{

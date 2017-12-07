@@ -57,7 +57,11 @@ public class Player {
     public void addResource(Tile.RESOURCE_TYPE type){
         if(type != Tile.RESOURCE_TYPE.DESERT) {
             cards.put(type, cards.get(type) + 1);
-            numResourceCards++;
+            int sum = 0;
+            for(Tile.RESOURCE_TYPE t : cards.keySet()){
+                sum += cards.get(t);
+            }
+            numResourceCards = sum;
         }
     }
 
@@ -370,6 +374,30 @@ public class Player {
             }
 
         }
+    }
+    public boolean canBuildSettlementHere(Spot s, Tile[] tiles, int sideLength){
+        for(Tile t: tiles){
+            for(Spot spot: t.spots){
+                if( Math.sqrt(Math.pow(s.x - spot.x, 2) + Math.pow(s.y - spot.y, 2)) <= sideLength && s._player != 0 ){
+                    return false;
+                }
+            }
+        }
+        for(Road r: roads){
+            if((r.one.x == s.x && r.one.y == s.y) || (r.two.x == s.x && r.two.y == s.y) ){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean canBuildSettlement(Tile[] tiles, int sideLength){
+        for(Tile t: tiles){
+            for(Spot s: t.spots){
+                if(canBuildSettlementHere(s, tiles, sideLength)) return true;
+            }
+        }
+        return false;
     }
 
 }
